@@ -1,0 +1,7 @@
+Http:
+  BindAddress: ":8080"
+  Mode: debug #(debug,release,test)
+Log:
+  ConsoleLevel: debug
+  EnableConsole: true
+  EnableJSONFormat: false

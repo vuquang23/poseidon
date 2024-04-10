@@ -1,0 +1,71 @@
+name: Default workflows
+on:
+  push:
+    branches:
+      - "main"
+      - "release*"
+  pull_request:
+
+jobs:
+  golangci-lint:
+    runs-on: ["self-hosted"]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/release')
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.21.3
+      - uses: actions/checkout@v3
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.52.2
+          args: --timeout=5m
+          skip-pkg-cache: true
+          skip-build-cache: true
+
+  # go-test:
+  #   runs-on: [ "self-hosted" ]
+  #   if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/release')
+  #   services:
+  #     redis:
+  #       image: bitnami/redis:latest
+  #       env:
+  #         ALLOW_EMPTY_PASSWORD: yes
+  #       ports:
+  #         - 7379:6379
+  #     postgresql:
+  #       image: postgres:15.3
+  #       env:
+  #         POSTGRES_DB: poseidon
+  #         POSTGRES_USER: poseidon
+  #         POSTGRES_PASSWORD: 123456
+  #       ports:
+  #         - 6432:5432
+  #   steps:
+  #     - name: Sleep for 45 seconds to wait Postgres up
+  #       run: |
+  #         sleep 45
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         ref: ${{ github.ref }}
+  #     - uses: actions/setup-go@v3
+  #       with:
+  #         go-version: 1.21.3
+  #     - name: Run unit tests
+  #       env:
+  #         TESTCOVERAGE_THRESHOLD: 0
+  #       run: |
+  #         echo "Running test..."
+  #         go test -p 1 -coverpkg=./... -coverprofile=profile.cov ./...
+  #         go tool cover -func profile.cov
+  #         echo "Quality Gate: checking test coverage is above threshold ..."
+  #         echo "Threshold: $TESTCOVERAGE_THRESHOLD %"
+  #         totalCoverage=`go tool cover -func=profile.cov | grep total: | grep -Eo '[0-9]+\.[0-9]+'`
+  #         echo "Current test coverage: $totalCoverage %"
+  #         if (( $(echo "$totalCoverage $TESTCOVERAGE_THRESHOLD" | awk '{print ($1 >= $2)}') )); then
+  #           echo "OK"
+  #         else
+  #           echo "Current test coverage is below threshold. Please add more unit tests."
+  #           echo "Failed"
+  #           exit 1
+  #         fi

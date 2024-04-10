@@ -1,0 +1,45 @@
+version: "3.7"
+
+networks:
+  app-tier:
+    driver: bridge
+
+services:
+  postgresql:
+    container_name: poseidon-postgresql
+    image: "postgres:15.3"
+    volumes:
+      - ./volumes/postgresql:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=poseidon
+      - POSTGRES_USER=poseidon
+      - POSTGRES_PASSWORD=123456
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    networks:
+      - app-tier
+
+  redis:
+    container_name: poseidon-redis
+    image: "redis:latest"
+    volumes:
+      - ./volumes/redis:/data
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - "6379:6379"
+    networks:
+      - app-tier
+
+  asynqmon:
+    container_name: poseidon-asynqmon
+    image: "hibiken/asynqmon:latest"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_ADDR=host.docker.internal:6379
+    ports:
+      - "3000:8080"
+    networks:
+      - app-tier
