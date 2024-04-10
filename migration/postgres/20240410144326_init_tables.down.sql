@@ -1,0 +1,9 @@
+DROP TABLE IF EXISTS block_cursors;
+
+DROP TABLE IF EXISTS ethusdt_klines;
+
+DROP TABLE IF EXISTS swap_events;
+
+DROP TABLE IF EXISTS txs;
+
+DROP TABLE IF EXISTS pools;

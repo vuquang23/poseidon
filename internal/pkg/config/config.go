@@ -11,11 +11,13 @@ import (
 
 	"github.com/vuquang23/poseidon/internal/pkg/server"
 	"github.com/vuquang23/poseidon/pkg/logger"
+	"github.com/vuquang23/poseidon/pkg/postgres"
 )
 
 type Config struct {
-	Http server.Config
-	Log  logger.Config
+	Http     server.Config
+	Log      logger.Config
+	Postgres postgres.Config
 }
 
 func New() Config {
