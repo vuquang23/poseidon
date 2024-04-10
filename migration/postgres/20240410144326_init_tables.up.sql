@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS pools (
     token0_decimals INT NOT NULL,
     token1 VARCHAR(64) NOT NULL,
     token1_decimals INT NOT NULL,
-    created_at BIGINT NOT NULL
+    created_at BIGINT NOT NULL,
+    UNIQUE (address)
 );
 
 CREATE TABLE IF NOT EXISTS txs (
@@ -53,5 +54,6 @@ CREATE TABLE IF NOT EXISTS block_cursors (
     extra JSON,
     created_at BIGINT NOT NULL,
     updated_at BIGINT NOT NULL,
-    FOREIGN KEY (pool_id) REFERENCES pools(id) ON DELETE CASCADE
+    FOREIGN KEY (pool_id) REFERENCES pools(id) ON DELETE CASCADE,
+    UNIQUE (pool_id, type)
 );

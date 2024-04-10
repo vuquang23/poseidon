@@ -12,12 +12,15 @@ import (
 	"github.com/vuquang23/poseidon/internal/pkg/server"
 	"github.com/vuquang23/poseidon/pkg/logger"
 	"github.com/vuquang23/poseidon/pkg/postgres"
+	"github.com/vuquang23/poseidon/pkg/redis"
 )
 
 type Config struct {
+	Common   CommonConfig
 	Http     server.Config
 	Log      logger.Config
 	Postgres postgres.Config
+	Redis    redis.Config
 }
 
 func New() Config {

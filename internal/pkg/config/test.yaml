@@ -9,7 +9,7 @@ Log:
   EnableJSONFormat: false
 Postgres:
   Host: localhost
-  Port: 5432
+  Port: 6432
   DBName: poseidon
   User: poseidon
   Password: 123456
@@ -18,7 +18,7 @@ Postgres:
   MaxOpenConns: 80
   LogLevel: 1
 Redis:
-  Addresses:
+  Addresses: ":7379"
   MasterName: ""
   DBNumber: 0
   Password: ""
