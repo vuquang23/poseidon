@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS pools (
     id SERIAL PRIMARY KEY,
-    `address` VARCHAR(64) NOT NULL,
+    address VARCHAR(64) NOT NULL,
     start_block BIGINT NOT NULL,
     token0 VARCHAR(64) NOT NULL,
     token0_decimals INT NOT NULL,
@@ -41,14 +41,14 @@ CREATE TABLE IF NOT EXISTS ethusdt_klines (
     open_price DECIMAL(10, 10),
     high_price DECIMAL(10, 10),
     low_price DECIMAL(10, 10),
-    close_price VARCHAR(10, 10),
+    close_price DECIMAL(10, 10),
     created_at BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS block_cursors (
     id SERIAL PRIMARY KEY,
     pool_id INT NOT NULL,
-    `type` VARCHAR(16),
+    type VARCHAR(16),
     block_number BIGINT NOT NULL,
     extra JSON,
     created_at BIGINT NOT NULL,
