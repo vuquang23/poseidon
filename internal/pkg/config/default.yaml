@@ -1,3 +1,5 @@
+Common:
+  APIKey: 0x_hello_world
 Http:
   BindAddress: ":8080"
   Mode: debug #(debug,release,test)
@@ -15,3 +17,8 @@ Postgres:
   MaxIdleConns: 10
   MaxOpenConns: 80
   LogLevel: 1
+Redis:
+  Addresses:
+  MasterName: ""
+  DBNumber: 0
+  Password: ""

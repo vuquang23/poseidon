@@ -9,6 +9,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.17.0
 	github.com/hibiken/asynq v0.24.1
 	github.com/mcuadros/go-defaults v1.2.0
+	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.5.1
 	github.com/shopspring/decimal v1.2.0
 	github.com/sirupsen/logrus v1.9.3
