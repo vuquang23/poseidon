@@ -23,6 +23,7 @@ func New(poolRepo poolrepo.IPoolRepository) *PoolService {
 func (s *PoolService) CreatePool(ctx context.Context, cmd *dto.CreatePoolCmd) (uint64, error) {
 	pool := entity.Pool{
 		Address:        cmd.Address,
+		StartBlock:     cmd.StartBlock,
 		Token0:         cmd.Token0,
 		Token0Decimals: cmd.Token0Decimals,
 		Token1:         cmd.Token1,

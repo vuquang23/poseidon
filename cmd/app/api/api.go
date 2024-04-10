@@ -1,9 +1,6 @@
 package api
 
 import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/urfave/cli/v2"
 
@@ -11,7 +8,6 @@ import (
 	"github.com/vuquang23/poseidon/internal/pkg/config"
 	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
 	"github.com/vuquang23/poseidon/internal/pkg/server"
-	"github.com/vuquang23/poseidon/internal/pkg/server/middleware"
 	poolsvc "github.com/vuquang23/poseidon/internal/pkg/service/pool"
 	"github.com/vuquang23/poseidon/pkg/asynq"
 	"github.com/vuquang23/poseidon/pkg/logger"
@@ -55,16 +51,8 @@ func RunAPI(c *cli.Context) error {
 
 	// server
 	server := server.GinEngine(conf.Http, conf.Log, logger.LoggerBackendZap)
-	router := server.Group("/api/v1")
 
-	// api
-
-	/// health
-	router.GET("health/live", func(c *gin.Context) { c.AbortWithStatusJSON(http.StatusOK, "OK") })
-	router.GET("health/ready", func(c *gin.Context) { c.AbortWithStatusJSON(http.StatusOK, "OK") })
-
-	/// pool
-	router.POST("pools", middleware.NewAuthMiddleware(conf.Common.APIKey), api.CreatePool(poolSvc))
+	api.RegisterRoutes(&conf, server, poolSvc)
 
 	return server.Run(conf.Http.BindAddress)
 }

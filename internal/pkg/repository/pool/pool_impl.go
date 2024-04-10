@@ -23,6 +23,11 @@ func New(db *gorm.DB, asynqClient asynq.IAsynqClient) *PoolRepository {
 	}
 }
 
+// SetAsynqClient sets mock asynq client for testing.
+func (r *PoolRepository) SetAsynqClient(c asynq.IAsynqClient) {
+	r.asynqClient = c
+}
+
 func (r *PoolRepository) CreatePool(ctx context.Context, pool *entity.Pool) (uint64, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		if err := r.db.Create(pool).Error; err != nil {

@@ -1,0 +1,24 @@
+Common:
+  APIKey: 0x_hello_world
+Http:
+  BindAddress: ":8080"
+  Mode: debug #(debug,release,test)
+Log:
+  ConsoleLevel: debug
+  EnableConsole: true
+  EnableJSONFormat: false
+Postgres:
+  Host: localhost
+  Port: 6432
+  DBName: poseidon
+  User: poseidon
+  Password: 123456
+  ConnLifeTime: 300
+  MaxIdleConns: 10
+  MaxOpenConns: 80
+  LogLevel: 1
+Redis:
+  Addresses: ":7379"
+  MasterName: ""
+  DBNumber: 0
+  Password: ""

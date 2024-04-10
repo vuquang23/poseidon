@@ -35,7 +35,7 @@ $ go run cmd/app/main.go worker
 ## Testing
 
 ```
-$ docker-compose -f ./infra/docker-compose-test.yaml -p poseidon-infra-test up -d
+$ docker-compose -f ./infra/docker-compose-infra-test.yaml -p poseidon-infra-test up -d
 $ make test
-$ docker-compose -f ./infra/docker-compose-test.yaml -p poseidon-infra-test down
+$ docker-compose -f ./infra/docker-compose-infra-test.yaml -p poseidon-infra-test down
 ```

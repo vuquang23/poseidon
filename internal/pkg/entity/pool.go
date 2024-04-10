@@ -3,6 +3,7 @@ package entity
 type Pool struct {
 	ID             uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
 	Address        string `json:"address"`
+	StartBlock     uint64 `json:"startBlock"`
 	Token0         string `json:"token0"`
 	Token0Decimals uint   `json:"token0Decimals"`
 	Token1         string `json:"token1"`

@@ -1,6 +1,8 @@
 package api
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/vuquang23/poseidon/internal/pkg/api/dto"
@@ -25,10 +27,11 @@ func CreatePool(poolsvc pool.IPoolService) gin.HandlerFunc {
 		}
 
 		command := svcdto.CreatePoolCmd{
-			Address:        req.Address,
-			Token0:         req.Token0,
+			Address:        strings.ToLower(req.Address),
+			StartBlock:     req.StartBlock,
+			Token0:         strings.ToLower(req.Token0),
 			Token0Decimals: req.Token0Decimals,
-			Token1:         req.Token1,
+			Token1:         strings.ToLower(req.Token1),
 			Token1Decimals: req.Token1Decimals,
 		}
 		poolID, err := poolsvc.CreatePool(c, &command)

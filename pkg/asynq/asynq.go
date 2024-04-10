@@ -13,6 +13,7 @@ import (
 
 var ErrEmptyRedisHost = errors.New("redis host is empty")
 
+//go:generate mockgen -destination=asynq_client_mock.go -package asynq . IAsynqClient
 type IAsynqClient interface {
 	EnqueueTask(
 		ctx context.Context,
