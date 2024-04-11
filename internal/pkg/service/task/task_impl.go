@@ -400,9 +400,9 @@ func initSwapEvents(ctx context.Context, poolID uint64, token0Decimals, token1De
 		swapEvent := entity.SwapEvent{
 			PoolID:  poolID,
 			TxHash:  strings.ToLower(log.TxHash.Hex()),
-			Amount0: amount0,
-			Amount1: amount1,
-			Price:   price,
+			Amount0: amount0.String(),
+			Amount1: amount1.String(),
+			Price:   price.String(),
 		}
 		swapEvents = append(swapEvents, &swapEvent)
 	}

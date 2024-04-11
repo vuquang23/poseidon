@@ -1,13 +1,11 @@
 package entity
 
-import "github.com/shopspring/decimal"
-
 type SwapEvent struct {
-	ID        uint64          `gorm:"primaryKey;autoIncrement" json:"id"`
-	PoolID    uint64          `json:"poolId"`
-	TxHash    string          `json:"txHash"`
-	Amount0   decimal.Decimal `json:"amount0"`
-	Amount1   decimal.Decimal `json:"amount1"`
-	Price     decimal.Decimal `json:"price"`
-	CreatedAt uint64          `gorm:"autoCreateTime" json:"createdAt"`
+	ID        uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
+	PoolID    uint64 `json:"poolId"`
+	TxHash    string `json:"txHash"`
+	Amount0   string `json:"amount0"`
+	Amount1   string `json:"amount1"`
+	Price     string `json:"price"`
+	CreatedAt uint64 `gorm:"autoCreateTime" json:"createdAt"`
 }

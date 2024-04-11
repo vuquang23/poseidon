@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	EventSwap     = UniswapV3PoolABI.Events["Swap"].ID
+	EventSwap     common.Hash
 	univ3Filterer *PoolFilterer
 )
 
@@ -18,8 +18,9 @@ func init() {
 		log.Fatal(err)
 		return
 	}
-
 	univ3Filterer = filterer
+
+	EventSwap = UniswapV3PoolABI.Events["Swap"].ID
 }
 
 func DecodeSwap(event types.Log) (*PoolSwap, error) {

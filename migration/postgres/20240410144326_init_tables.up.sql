@@ -28,9 +28,9 @@ CREATE TABLE IF NOT EXISTS swap_events (
     id SERIAL PRIMARY KEY,
     pool_id INT NOT NULL,
     tx_hash VARCHAR(128) NOT NULL,
-    amount0 DECIMAL(80, 0),
-    amount1 DECIMAL(80, 0),
-    price DECIMAL(80, 80),
+    amount0 VARCHAR(128),
+    amount1 VARCHAR(128),
+    price VARCHAR(128),
     created_at BIGINT NOT NULL,
     FOREIGN KEY (pool_id) REFERENCES pools(id) ON DELETE CASCADE
 );
