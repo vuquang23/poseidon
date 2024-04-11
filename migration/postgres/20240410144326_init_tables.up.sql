@@ -31,8 +31,7 @@ CREATE TABLE IF NOT EXISTS swap_events (
     amount1 DECIMAL(80, 0),
     price DECIMAL(80, 80),
     created_at BIGINT NOT NULL,
-    FOREIGN KEY (pool_id) REFERENCES pools(id) ON DELETE CASCADE,
-    FOREIGN KEY (tx_id) REFERENCES txs(id) ON DELETE CASCADE
+    FOREIGN KEY (pool_id) REFERENCES pools(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS ethusdt_klines (
