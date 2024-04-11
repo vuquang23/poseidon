@@ -1,1 +1,69 @@
 package worker
+
+import (
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/urfave/cli/v2"
+
+	"github.com/vuquang23/poseidon/internal/pkg/config"
+	chainrepo "github.com/vuquang23/poseidon/internal/pkg/repository/chain"
+	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
+	tasksvc "github.com/vuquang23/poseidon/internal/pkg/service/task"
+	"github.com/vuquang23/poseidon/internal/pkg/taskq/worker"
+	"github.com/vuquang23/poseidon/pkg/asynq"
+	"github.com/vuquang23/poseidon/pkg/eth"
+	"github.com/vuquang23/poseidon/pkg/logger"
+	"github.com/vuquang23/poseidon/pkg/postgres"
+)
+
+func RunWorker(c *cli.Context) error {
+	conf := config.New()
+	if err := conf.Load(c.String("config")); err != nil {
+		return err
+	}
+
+	// logger
+	_, err := logger.Init(conf.Log, logger.LoggerBackendZap)
+	if err != nil {
+		return err
+	}
+
+	// postgres
+	db, err := postgres.New(conf.Postgres)
+	if err != nil {
+		return err
+	}
+
+	// asynq client
+	asynqClient, err := asynq.NewClient(conf.Redis)
+	if err != nil {
+		return err
+	}
+
+	// eth client
+	ethClient, err := eth.NewClient(conf.Eth)
+	if err != nil {
+		return err
+	}
+
+	// auto migration
+	if err := postgres.MigrateUp(db, "file://./migration/postgres", 0); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
+	// repository
+	poolRepo := poolrepo.New(db, asynqClient)
+	chainRepo := chainrepo.New(conf.Repository.Chain, ethClient)
+
+	// service
+	taskSvc := tasksvc.New(poolRepo, chainRepo)
+
+	// worker
+	w, err := worker.New(conf.Redis)
+	if err != nil {
+		return err
+	}
+
+	worker.RegisterHandlers(w, taskSvc)
+
+	return w.Run()
+}

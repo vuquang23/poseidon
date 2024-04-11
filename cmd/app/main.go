@@ -6,6 +6,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 	"github.com/vuquang23/poseidon/cmd/app/api"
+	"github.com/vuquang23/poseidon/cmd/app/worker"
 )
 
 func main() {
@@ -21,10 +22,14 @@ func main() {
 		},
 		Commands: []*cli.Command{
 			{
-				Name:    "API Server",
-				Aliases: []string{"api"},
-				Usage:   "Run API Server",
-				Action:  api.RunAPI,
+				Name:   "api",
+				Usage:  "Run API Server",
+				Action: api.RunAPI,
+			},
+			{
+				Name:   "worker",
+				Usage:  "Run Worker",
+				Action: worker.RunWorker,
 			},
 		},
 	}
