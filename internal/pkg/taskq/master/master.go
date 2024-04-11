@@ -2,6 +2,7 @@ package master
 
 import (
 	"context"
+	"time"
 
 	"github.com/hibiken/asynq"
 
@@ -25,6 +26,7 @@ func New(cfg redis.Config, svc task.ITaskService) (*Master, error) {
 	manager, err := asynq.NewPeriodicTaskManager(asynq.PeriodicTaskManagerOpts{
 		RedisConnOpt:               redisConnOpt,
 		PeriodicTaskConfigProvider: provider,
+		SyncInterval:               15 * time.Second,
 	})
 	if err != nil {
 		return nil, err

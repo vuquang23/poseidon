@@ -3,7 +3,7 @@ package task
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -44,7 +44,38 @@ func New(poolRepo poolrepo.IPoolRepository, txRepo txrepo.ITxRepository, ethClie
 }
 
 func (s *TaskService) GetPeriodicTaskConfigs(ctx context.Context) ([]*asynq.PeriodicTaskConfig, error) {
-	return nil, errors.New("not implemented")
+	pools, err := s.poolRepo.GetPools(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var configs []*asynq.PeriodicTaskConfig
+	for _, p := range pools {
+		payload := valueobject.TaskScanTxsPayload{
+			PoolID:         p.ID,
+			PoolAddress:    p.Address,
+			Token0Decimals: p.Token0Decimals,
+			Token1Decimals: p.Token1Decimals,
+		}
+		payloadBytes, err := json.Marshal(payload)
+		if err != nil {
+			logger.Error(ctx, err.Error())
+			return nil, err
+		}
+
+		t := asynq.NewTask(
+			valueobject.TaskTypeScanTxs,
+			payloadBytes,
+			asynq.TaskID(fmt.Sprintf("%s:%s", valueobject.TaskTypeScanTxs, p.Address)),
+		)
+
+		configs = append(configs, &asynq.PeriodicTaskConfig{
+			Cronspec: s.config.Cronspec,
+			Task:     t,
+		})
+	}
+
+	return configs, nil
 }
 
 func (s *TaskService) HandlePoolCreated(ctx context.Context, poolAddress string) error {
@@ -315,7 +346,7 @@ func initTxs(ctx context.Context, poolID uint64, blocks []*types.Block, txReceip
 	return txs, nil
 }
 
-func initSwapEvents(ctx context.Context, poolID, token0Decimals, token1Decimals uint64, logs []types.Log) ([]*entity.SwapEvent, error) {
+func initSwapEvents(ctx context.Context, poolID uint64, token0Decimals, token1Decimals uint, logs []types.Log) ([]*entity.SwapEvent, error) {
 	var swapEvents []*entity.SwapEvent
 
 	for _, log := range logs {
