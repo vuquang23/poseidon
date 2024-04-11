@@ -50,6 +50,16 @@ func New(
 	}
 }
 
+// SetEthClient sets mock eth client for testing.
+func (s *TaskService) SetEthClient(c eth.IClient) {
+	s.ethClient = c
+}
+
+// SetAsynqClient sets mock asynq client for testing.
+func (s *TaskService) SetAsynqClient(c asynqpkg.IAsynqClient) {
+	s.asynqClient = c
+}
+
 func (s *TaskService) GetPeriodicTaskConfigs(ctx context.Context) ([]*asynq.PeriodicTaskConfig, error) {
 	pools, err := s.poolRepo.GetPools(ctx)
 	if err != nil {
@@ -182,11 +192,11 @@ func (s *TaskService) ScanTxs(ctx context.Context, task valueobject.TaskScanTxsP
 }
 
 func (s *TaskService) getLogs(ctx context.Context, cursorBlockNbr uint64, poolAddress string) ([]types.Log, uint64, uint64, error) {
-	latestBlock, err := s.ethClient.GetLatestBlock(ctx)
+	latestBlockHeader, err := s.ethClient.GetLatestBlockHeader(ctx)
 	if err != nil {
 		return nil, 0, 0, err
 	}
-	latestBlockNbr := latestBlock.Number().Uint64()
+	latestBlockNbr := latestBlockHeader.Number.Uint64()
 
 	fromBlock := cursorBlockNbr
 	toBlock := fromBlock + s.config.BlockBatchSize - 1
@@ -200,7 +210,7 @@ func (s *TaskService) getLogs(ctx context.Context, cursorBlockNbr uint64, poolAd
 			"fromBlock":      fromBlock,
 			"toBlock":        toBlock,
 			"batchSize":      s.config.BlockBatchSize,
-			"latestBlockNbr": latestBlock,
+			"latestBlockNbr": latestBlockNbr,
 		}).Warn("invalid block range")
 		return nil, 0, 0, ErrInvalidBlockRange
 	}
@@ -305,22 +315,22 @@ func (s *TaskService) enqueueTaskGetETHUSDTKlines(ctx context.Context, blockHead
 }
 
 func (s *TaskService) GetLatestFinalizedBlockNumber(ctx context.Context) (uint64, error) {
-	block, err := s.ethClient.GetLatestBlock(ctx)
+	header, err := s.ethClient.GetLatestBlockHeader(ctx)
 	if err != nil {
 		logger.Error(ctx, err.Error())
 		return 0, err
 	}
 
-	t := time.Unix(int64(block.Time()), 0)
+	t := time.Unix(int64(header.Time), 0)
 	if t.Before(time.Now().Add(-s.config.BlockTimeDelayThreshold)) {
 		logger.WithFields(ctx, logger.Fields{
-			"blockTime":      block.Time(),
+			"blockTime":      header.Time,
 			"delayThreshold": s.config.BlockTimeDelayThreshold,
 		}).Error(ErrInvalidLatestBlock.Error())
 		return 0, ErrInvalidLatestBlock
 	}
 
-	return block.NumberU64() - s.config.BlockFinalization, nil
+	return header.Number.Uint64() - s.config.BlockFinalization, nil
 }
 
 func initTxs(ctx context.Context, poolID uint64, blockHeaders []*types.Header, txReceipts []*types.Receipt) ([]*entity.Tx, error) {
@@ -395,7 +405,7 @@ func initSwapEvents(ctx context.Context, poolID uint64, token0Decimals, token1De
 
 		amount0Dec := amount0.Abs().Div(decimal.NewFromBigInt(big.NewInt(10), int32(token0Decimals)))
 		amount1Dec := amount1.Abs().Div(decimal.NewFromBigInt(big.NewInt(10), int32(token1Decimals)))
-		price := amount0Dec.Div(amount1Dec)
+		price := amount0Dec.Div(amount1Dec).Round(6)
 
 		swapEvent := entity.SwapEvent{
 			PoolID:  poolID,

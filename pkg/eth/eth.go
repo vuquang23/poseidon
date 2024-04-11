@@ -12,8 +12,9 @@ import (
 	"github.com/vuquang23/poseidon/pkg/logger"
 )
 
+//go:generate mockgen -destination=eth_client_mock.go -package eth . IClient
 type IClient interface {
-	GetLatestBlock(ctx context.Context) (*types.Block, error)
+	GetLatestBlockHeader(ctx context.Context) (*types.Header, error)
 	HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error)
 	GetTxReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 	GetLogs(ctx context.Context, fromBlock, toBlock uint64, addresses []common.Address) ([]types.Log, error)
@@ -36,14 +37,14 @@ func NewClient(config Config) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) GetLatestBlock(ctx context.Context) (*types.Block, error) {
+func (c *Client) GetLatestBlockHeader(ctx context.Context) (*types.Header, error) {
 	block, err := c.ethClient.BlockByNumber(ctx, nil)
 	if err != nil {
 		logger.Error(ctx, err.Error())
 		return nil, err
 	}
 
-	return block, nil
+	return block.Header(), nil
 }
 
 func (c *Client) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {

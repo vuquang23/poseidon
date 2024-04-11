@@ -15,8 +15,8 @@ import (
 	"github.com/vuquang23/poseidon/pkg/asynq"
 )
 
-func (suite *TestSuite) TestAPICreatePool_Successfully() {
-	name := "TestAPICreatePool_Successfully: create pool successfully"
+func (suite *TestSuite) TestAPI_CreatePool_Successfully() {
+	name := "TestAPI_CreatePool_Successfully: create pool successfully"
 	suite.T().Log(name)
 
 	ctrl := gomock.NewController(suite.T())
@@ -70,8 +70,8 @@ func (suite *TestSuite) TestAPICreatePool_Successfully() {
 	suite.Positive(actualResBody["data"].(map[string]interface{})["poolId"])
 }
 
-func (suite *TestSuite) TestAPICreatePool_Failed() {
-	name := "TestAPICreatePool_Failed: create pool failed"
+func (suite *TestSuite) TestAPI_CreatePool_Failed() {
+	name := "TestAPI_CreatePool_Failed: create pool failed"
 	suite.T().Log(name)
 
 	ctrl := gomock.NewController(suite.T())
