@@ -359,7 +359,7 @@ func initTxs(ctx context.Context, poolID uint64, blockHeaders []*types.Header, t
 			TxHash:      txHash,
 			BlockNumber: header.Number.Uint64(),
 			BlockTime:   header.Time,
-			Gas:         receipt.CumulativeGasUsed,
+			Gas:         receipt.GasUsed,
 			Receipt:     receiptJSON,
 			IsFinalized: false,
 		}
