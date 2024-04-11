@@ -5,6 +5,7 @@ type TaskType string
 const (
 	TaskTypeHandlePoolCreated = "handle_pool_created"
 	TaskTypeGetETHUSDTKline   = "get_ethusdt_kline"
+	TaskTypeScanTxs           = "scan_txs"
 )
 
 type TaskHandlePoolCreatedPayload struct {
