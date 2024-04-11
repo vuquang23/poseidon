@@ -50,3 +50,22 @@ func (r *PoolRepository) CreatePool(ctx context.Context, pool *entity.Pool) (uin
 
 	return pool.ID, nil
 }
+
+func (r *PoolRepository) GetPoolByAddress(ctx context.Context, address string) (*entity.Pool, error) {
+	var pool entity.Pool
+	if err := r.db.Take(&pool).Error; err != nil {
+		logger.Error(ctx, err.Error())
+		return nil, err
+	}
+
+	return &pool, nil
+}
+
+func (r *PoolRepository) CreateBlockCursors(ctx context.Context, cursors []*entity.BlockCursor) error {
+	if err := r.db.Create(cursors).Error; err != nil {
+		logger.Error(ctx, err.Error())
+		return err
+	}
+
+	return nil
+}

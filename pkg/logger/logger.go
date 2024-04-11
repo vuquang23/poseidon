@@ -6,7 +6,9 @@ import (
 	"sync"
 )
 
-const CtxLoggerKey = "logger"
+type LoggerKey string
+
+const CtxLoggerKey LoggerKey = "logger"
 
 // A global variable so that log functions can be directly accessed
 var log = DefaultLogger()

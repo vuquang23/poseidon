@@ -9,18 +9,22 @@ import (
 	"github.com/mcuadros/go-defaults"
 	"github.com/spf13/viper"
 
+	"github.com/vuquang23/poseidon/internal/pkg/repository"
 	"github.com/vuquang23/poseidon/internal/pkg/server"
+	"github.com/vuquang23/poseidon/pkg/eth"
 	"github.com/vuquang23/poseidon/pkg/logger"
 	"github.com/vuquang23/poseidon/pkg/postgres"
 	"github.com/vuquang23/poseidon/pkg/redis"
 )
 
 type Config struct {
-	Common   CommonConfig
-	Http     server.Config
-	Log      logger.Config
-	Postgres postgres.Config
-	Redis    redis.Config
+	Common     CommonConfig
+	Eth        eth.Config
+	Http       server.Config
+	Log        logger.Config
+	Postgres   postgres.Config
+	Redis      redis.Config
+	Repository repository.Config
 }
 
 func New() Config {
