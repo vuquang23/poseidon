@@ -1,7 +1,6 @@
 package worker
 
 import (
-	"github.com/golang-migrate/migrate/v4"
 	"github.com/urfave/cli/v2"
 
 	"github.com/vuquang23/poseidon/internal/pkg/config"
@@ -42,11 +41,6 @@ func RunWorker(c *cli.Context) error {
 	// eth client
 	ethClient, err := eth.NewClient(conf.Eth)
 	if err != nil {
-		return err
-	}
-
-	// auto migration
-	if err := postgres.MigrateUp(db, "file://./migration/postgres", 0); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
 
