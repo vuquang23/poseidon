@@ -15,3 +15,7 @@ type Tx struct {
 	IsFinalized bool           `json:"isFinalized"`
 	CreatedAt   uint64         `gorm:"autoCreateTime" json:"createdAt"`
 }
+
+func (Tx) TableName() string {
+	return "txs"
+}
