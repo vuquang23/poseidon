@@ -26,6 +26,7 @@ Redis:
   Password: ""
 Service:
   Task:
+    Cronspec: "@every 5s"
     BlockBatchSize: 300
     BlockTimeDelayThreshold: 60s
     BlockFinalization: 75 #Ethereum
