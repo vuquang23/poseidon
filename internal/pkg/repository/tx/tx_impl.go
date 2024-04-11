@@ -48,14 +48,18 @@ func (r *TxRepository) UpdateDataScanner(ctx context.Context, blockcursorID uint
 			return err
 		}
 
-		if err := tx.Create(&txs).Error; err != nil {
-			logger.Error(ctx, err.Error())
-			return err
+		if len(txs) != 0 {
+			if err := tx.Create(&txs).Error; err != nil {
+				logger.Error(ctx, err.Error())
+				return err
+			}
 		}
 
-		if err := tx.Create(&swapEvents).Error; err != nil {
-			logger.Error(ctx, err.Error())
-			return err
+		if len(swapEvents) != 0 {
+			if err := tx.Create(&swapEvents).Error; err != nil {
+				logger.Error(ctx, err.Error())
+				return err
+			}
 		}
 
 		return nil
