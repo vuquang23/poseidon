@@ -15,8 +15,8 @@ type TaskHandlePoolCreatedPayload struct {
 type TaskScanTxsPayload struct {
 	PoolID         uint64 `json:"poolId"`
 	PoolAddress    string `json:"poolAddress"`
-	Token0Decimals uint64 `json:"token0Decimals"`
-	Token1Decimals uint64 `json:"token1Decimals"`
+	Token0Decimals uint   `json:"token0Decimals"`
+	Token1Decimals uint   `json:"token1Decimals"`
 }
 
 type TaskGetETHUSDTKlinePayload struct {
