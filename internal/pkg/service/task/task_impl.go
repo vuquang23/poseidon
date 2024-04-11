@@ -217,7 +217,7 @@ func (s *TaskService) getTxs(ctx context.Context, txHashes []common.Hash) ([]*ty
 	var (
 		wg        errgroup.Group
 		resultMap sync.Map
-		receipts  = make([]*types.Receipt, 0, len(txHashes))
+		receipts  = make([]*types.Receipt, len(txHashes))
 	)
 
 	for idx, txHash := range txHashes {
@@ -233,6 +233,11 @@ func (s *TaskService) getTxs(ctx context.Context, txHashes []common.Hash) ([]*ty
 		})
 	}
 
+	if err := wg.Wait(); err != nil {
+		logger.Error(ctx, err.Error())
+		return nil, err
+	}
+
 	for i := 0; i < len(txHashes); i++ {
 		r, _ := resultMap.Load(i)
 		receipt := r.(*types.Receipt)
@@ -246,14 +251,13 @@ func (s *TaskService) getBlockHeaders(ctx context.Context, blockHashes []common.
 	var (
 		wg        errgroup.Group
 		resultMap sync.Map
-		headers   = make([]*types.Header, 0, len(blockHashes))
+		headers   = make([]*types.Header, len(blockHashes))
 	)
 
 	for idx, blockHash := range blockHashes {
 		_idx, _blockHash := idx, blockHash
 
 		wg.Go(func() error {
-			logger.Infof(ctx, "blockhash(%s)", _blockHash.Hex())
 			header, err := s.ethClient.HeaderByHash(ctx, _blockHash)
 			if err != nil {
 				return err
@@ -261,6 +265,11 @@ func (s *TaskService) getBlockHeaders(ctx context.Context, blockHashes []common.
 			resultMap.Store(_idx, header)
 			return nil
 		})
+	}
+
+	if err := wg.Wait(); err != nil {
+		logger.Error(ctx, err.Error())
+		return nil, err
 	}
 
 	for i := 0; i < len(blockHashes); i++ {
@@ -365,7 +374,7 @@ func initSwapEvents(ctx context.Context, poolID uint64, token0Decimals, token1De
 	var swapEvents []*entity.SwapEvent
 
 	for _, log := range logs {
-		if log.Topics[0] != uniswapv3.EventSwap {
+		if len(log.Topics) == 0 || log.Topics[0] != uniswapv3.EventSwap {
 			continue
 		}
 
