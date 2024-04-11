@@ -360,6 +360,7 @@ func initTxs(ctx context.Context, poolID uint64, blockHeaders []*types.Header, t
 			BlockNumber: header.Number.Uint64(),
 			BlockTime:   header.Time,
 			Gas:         receipt.GasUsed,
+			GasPrice:    decimal.NewFromBigInt(receipt.EffectiveGasPrice, 0),
 			Receipt:     receiptJSON,
 			IsFinalized: false,
 		}

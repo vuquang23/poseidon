@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS txs (
     block_number BIGINT NOT NULL,
     block_time BIGINT NOT NULL,
     gas BIGINT NOT NULL,
+    gas_price DECIMAL(80, 0) NOT NULL,
     receipt JSON NOT NULL,
     is_finalized BOOLEAN NOT NULL,
     created_at BIGINT NOT NULL,
