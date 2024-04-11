@@ -12,7 +12,9 @@ import (
 	"github.com/vuquang23/poseidon/internal/pkg/api"
 	"github.com/vuquang23/poseidon/internal/pkg/config"
 	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
+	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
 	poolsvc "github.com/vuquang23/poseidon/internal/pkg/service/pool"
+	tasksvc "github.com/vuquang23/poseidon/internal/pkg/service/task"
 	"github.com/vuquang23/poseidon/pkg/asynq"
 	"github.com/vuquang23/poseidon/pkg/logger"
 	"github.com/vuquang23/poseidon/pkg/postgres"
@@ -25,8 +27,8 @@ var (
 	XAPIKey   string
 	ginEngine *gin.Engine
 	db        *gorm.DB
-
-	poolRepo *poolrepo.PoolRepository
+	taskSvc   *tasksvc.TaskService
+	poolRepo  *poolrepo.PoolRepository
 )
 
 type TestSuite struct {
@@ -66,9 +68,11 @@ func (suite *TestSuite) SetupSuite() {
 
 	// repository
 	poolRepo = poolrepo.New(db, asynqClient)
+	txRepo := txrepo.New(db)
 
 	// service
 	poolSvc := poolsvc.New(poolRepo)
+	taskSvc = tasksvc.New(conf.Service.Task, poolRepo, txRepo, nil, nil)
 
 	// server
 	ginEngine = gin.New()
@@ -82,6 +86,21 @@ func (suite *TestSuite) SetupTest() {
 
 	// postgres
 	err := db.Exec("TRUNCATE TABLE pools CASCADE").Error
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
+	err = db.Exec("TRUNCATE TABLE txs CASCADE").Error
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
+	err = db.Exec("TRUNCATE TABLE swap_events CASCADE").Error
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
+	err = db.Exec("TRUNCATE TABLE block_cursors CASCADE").Error
 	if err != nil {
 		suite.FailNow(err.Error())
 	}

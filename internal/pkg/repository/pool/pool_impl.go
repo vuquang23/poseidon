@@ -61,11 +61,12 @@ func (r *PoolRepository) GetPoolByAddress(ctx context.Context, address string) (
 	return &pool, nil
 }
 
-func (r *PoolRepository) CreateBlockCursors(ctx context.Context, cursors []*entity.BlockCursor) error {
-	if err := r.db.Create(cursors).Error; err != nil {
+func (r *PoolRepository) GetPools(ctx context.Context) ([]*entity.Pool, error) {
+	var pools []*entity.Pool
+	if err := r.db.Find(&pools).Error; err != nil {
 		logger.Error(ctx, err.Error())
-		return err
+		return nil, err
 	}
 
-	return nil
+	return pools, nil
 }

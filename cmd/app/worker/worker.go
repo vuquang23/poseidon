@@ -4,8 +4,8 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/vuquang23/poseidon/internal/pkg/config"
-	chainrepo "github.com/vuquang23/poseidon/internal/pkg/repository/chain"
 	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
+	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
 	tasksvc "github.com/vuquang23/poseidon/internal/pkg/service/task"
 	"github.com/vuquang23/poseidon/internal/pkg/taskq/worker"
 	"github.com/vuquang23/poseidon/pkg/asynq"
@@ -46,10 +46,10 @@ func RunWorker(c *cli.Context) error {
 
 	// repository
 	poolRepo := poolrepo.New(db, asynqClient)
-	chainRepo := chainrepo.New(conf.Repository.Chain, ethClient)
+	txRepo := txrepo.New(db)
 
 	// service
-	taskSvc := tasksvc.New(poolRepo, chainRepo)
+	taskSvc := tasksvc.New(conf.Service.Task, poolRepo, txRepo, ethClient, asynqClient)
 
 	// worker
 	w, err := worker.New(conf.Redis)

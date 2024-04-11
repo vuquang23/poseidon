@@ -28,3 +28,5 @@ infra/volumes
 # Draft stuffs
 test.log
 *_local.*
+
+.env
