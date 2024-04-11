@@ -49,7 +49,7 @@ func RunWorker(c *cli.Context) error {
 	txRepo := txrepo.New(db)
 
 	// service
-	taskSvc := tasksvc.New(poolRepo, txRepo, ethClient, asynqClient)
+	taskSvc := tasksvc.New(conf.Service.Task, poolRepo, txRepo, ethClient, asynqClient)
 
 	// worker
 	w, err := worker.New(conf.Redis)

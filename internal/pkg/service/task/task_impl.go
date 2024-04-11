@@ -34,8 +34,15 @@ type TaskService struct {
 	asynqClient asynqpkg.IAsynqClient
 }
 
-func New(poolRepo poolrepo.IPoolRepository, txRepo txrepo.ITxRepository, ethClient eth.IClient, asynqClient asynqpkg.IAsynqClient) *TaskService {
+func New(
+	config Config,
+	poolRepo poolrepo.IPoolRepository,
+	txRepo txrepo.ITxRepository,
+	ethClient eth.IClient,
+	asynqClient asynqpkg.IAsynqClient,
+) *TaskService {
 	return &TaskService{
+		config:      config,
 		poolRepo:    poolRepo,
 		txRepo:      txRepo,
 		ethClient:   ethClient,
