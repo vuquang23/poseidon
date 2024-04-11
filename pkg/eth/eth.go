@@ -14,7 +14,7 @@ import (
 
 type IClient interface {
 	GetLatestBlock(ctx context.Context) (*types.Block, error)
-	GetBlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error)
+	HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error)
 	GetTxReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
 	GetLogs(ctx context.Context, fromBlock, toBlock uint64, addresses []common.Address) ([]types.Log, error)
 }
@@ -46,13 +46,13 @@ func (c *Client) GetLatestBlock(ctx context.Context) (*types.Block, error) {
 	return block, nil
 }
 
-func (c *Client) GetBlockByHash(ctx context.Context, hash common.Hash) (*types.Block, error) {
-	block, err := c.ethClient.BlockByHash(ctx, hash)
+func (c *Client) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
+	blockHeader, err := c.ethClient.HeaderByHash(ctx, hash)
 	if err != nil {
 		logger.Error(ctx, err.Error())
 		return nil, err
 	}
-	return block, err
+	return blockHeader, err
 }
 
 func (c *Client) GetLogs(ctx context.Context, fromBlock, toBlock uint64, addresses []common.Address) ([]types.Log, error) {

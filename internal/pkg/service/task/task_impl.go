@@ -140,18 +140,25 @@ func (s *TaskService) ScanTxs(ctx context.Context, task valueobject.TaskScanTxsP
 		return err
 	}
 
-	logs, _, toBlock, err := s.getLogs(ctx, cursor.BlockNumber, poolAddress)
+	logs, fromBlock, toBlock, err := s.getLogs(ctx, cursor.BlockNumber, poolAddress)
 	if err != nil {
 		return err
 	}
+
+	logger.WithFields(ctx, logger.Fields{
+		"fromBlock": fromBlock,
+		"toBlock":   toBlock,
+		"pool":      poolAddress,
+		"logs":      len(logs),
+	}).Info("retrieve logs")
 
 	blockHashes := uniqueBlockHashes(logs)
-	blocks, err := s.getBlocks(ctx, blockHashes)
+	headers, err := s.getBlockHeaders(ctx, blockHashes)
 	if err != nil {
 		return err
 	}
 
-	if err := s.enqueueTaskGetETHUSDTKlines(ctx, blocks); err != nil {
+	if err := s.enqueueTaskGetETHUSDTKlines(ctx, headers); err != nil {
 		return err
 	}
 
@@ -161,7 +168,7 @@ func (s *TaskService) ScanTxs(ctx context.Context, task valueobject.TaskScanTxsP
 		return err
 	}
 
-	txs, err := initTxs(ctx, poolID, blocks, txReceipts)
+	txs, err := initTxs(ctx, poolID, headers, txReceipts)
 	if err != nil {
 		return err
 	}
@@ -235,39 +242,40 @@ func (s *TaskService) getTxs(ctx context.Context, txHashes []common.Hash) ([]*ty
 	return receipts, nil
 }
 
-func (s *TaskService) getBlocks(ctx context.Context, blockHashes []common.Hash) ([]*types.Block, error) {
+func (s *TaskService) getBlockHeaders(ctx context.Context, blockHashes []common.Hash) ([]*types.Header, error) {
 	var (
 		wg        errgroup.Group
 		resultMap sync.Map
-		blocks    = make([]*types.Block, 0, len(blockHashes))
+		headers   = make([]*types.Header, 0, len(blockHashes))
 	)
 
 	for idx, blockHash := range blockHashes {
 		_idx, _blockHash := idx, blockHash
 
 		wg.Go(func() error {
-			receipt, err := s.ethClient.GetBlockByHash(ctx, _blockHash)
+			logger.Infof(ctx, "blockhash(%s)", _blockHash.Hex())
+			header, err := s.ethClient.HeaderByHash(ctx, _blockHash)
 			if err != nil {
 				return err
 			}
-			resultMap.Store(_idx, receipt)
+			resultMap.Store(_idx, header)
 			return nil
 		})
 	}
 
 	for i := 0; i < len(blockHashes); i++ {
 		r, _ := resultMap.Load(i)
-		block := r.(*types.Block)
-		blocks[i] = block
+		header := r.(*types.Header)
+		headers[i] = header
 	}
 
-	return blocks, nil
+	return headers, nil
 }
 
-func (s *TaskService) enqueueTaskGetETHUSDTKlines(ctx context.Context, blocks []*types.Block) error {
+func (s *TaskService) enqueueTaskGetETHUSDTKlines(ctx context.Context, blockHeaders []*types.Header) error {
 	exists := map[uint64]struct{}{}
-	for _, b := range blocks {
-		if _, ok := exists[b.Time()]; ok {
+	for _, b := range blockHeaders {
+		if _, ok := exists[b.Time]; ok {
 			continue
 		}
 
@@ -275,13 +283,13 @@ func (s *TaskService) enqueueTaskGetETHUSDTKlines(ctx context.Context, blocks []
 			ctx,
 			valueobject.TaskTypeGetETHUSDTKline,
 			"", "",
-			valueobject.TaskGetETHUSDTKlinePayload{Time: b.Time()},
+			valueobject.TaskGetETHUSDTKlinePayload{Time: b.Time},
 			-1,
 		); err != nil {
 			return err
 		}
 
-		exists[b.Time()] = struct{}{}
+		exists[b.Time] = struct{}{}
 	}
 
 	return nil
@@ -306,11 +314,11 @@ func (s *TaskService) GetLatestFinalizedBlockNumber(ctx context.Context) (uint64
 	return block.NumberU64() - s.config.BlockFinalization, nil
 }
 
-func initTxs(ctx context.Context, poolID uint64, blocks []*types.Block, txReceipts []*types.Receipt) ([]*entity.Tx, error) {
-	blockByBlockHash := map[string]*types.Block{}
-	for _, b := range blocks {
+func initTxs(ctx context.Context, poolID uint64, blockHeaders []*types.Header, txReceipts []*types.Receipt) ([]*entity.Tx, error) {
+	headerByHash := map[string]*types.Header{}
+	for _, b := range blockHeaders {
 		h := strings.ToLower(b.Hash().Hex())
-		blockByBlockHash[h] = b
+		headerByHash[h] = b
 	}
 
 	txs := make([]*entity.Tx, 0, len(txReceipts))
@@ -318,7 +326,7 @@ func initTxs(ctx context.Context, poolID uint64, blocks []*types.Block, txReceip
 	for _, receipt := range txReceipts {
 		txHash := strings.ToLower(receipt.TxHash.Hex())
 
-		block, ok := blockByBlockHash[strings.ToLower(receipt.BlockHash.Hex())]
+		header, ok := headerByHash[strings.ToLower(receipt.BlockHash.Hex())]
 		if !ok {
 			logger.WithFields(ctx, logger.Fields{
 				"blockHash": receipt.BlockHash.Hex(),
@@ -340,8 +348,8 @@ func initTxs(ctx context.Context, poolID uint64, blocks []*types.Block, txReceip
 		tx := entity.Tx{
 			PoolID:      poolID,
 			TxHash:      txHash,
-			BlockNumber: block.NumberU64(),
-			BlockTime:   block.Time(),
+			BlockNumber: header.Number.Uint64(),
+			BlockTime:   header.Time,
 			Gas:         receipt.CumulativeGasUsed,
 			Receipt:     receiptJSON,
 			IsFinalized: false,
@@ -401,7 +409,7 @@ func uniqueBlockHashes(logs []types.Log) []common.Hash {
 			continue
 		}
 		m[h] = struct{}{}
-		blockHashes = append(blockHashes, l.TxHash)
+		blockHashes = append(blockHashes, l.BlockHash)
 	}
 
 	return blockHashes
