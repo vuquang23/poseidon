@@ -5,7 +5,7 @@ import "github.com/shopspring/decimal"
 type SwapEvent struct {
 	ID        uint64          `gorm:"primaryKey;autoIncrement" json:"id"`
 	PoolID    uint64          `json:"poolId"`
-	TxID      uint64          `json:"txId"`
+	TxHash    string          `json:"txHash"`
 	Amount0   decimal.Decimal `json:"amount0"`
 	Amount1   decimal.Decimal `json:"amount1"`
 	Price     decimal.Decimal `json:"price"`

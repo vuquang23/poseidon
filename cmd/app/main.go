@@ -5,8 +5,10 @@ import (
 	"os"
 
 	"github.com/urfave/cli/v2"
+
 	"github.com/vuquang23/poseidon/cmd/app/api"
 	"github.com/vuquang23/poseidon/cmd/app/worker"
+	_ "github.com/vuquang23/poseidon/pkg/uniswapv3"
 )
 
 func main() {

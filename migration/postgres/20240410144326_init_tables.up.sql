@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS txs (
     tx_hash VARCHAR(128) NOT NULL,
     block_number BIGINT NOT NULL,
     block_time BIGINT NOT NULL,
-    gas DECIMAL(80, 0),
+    gas BIGINT NOT NULL,
     receipt JSON NOT NULL,
     is_finalized BOOLEAN NOT NULL,
     created_at BIGINT NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS txs (
 CREATE TABLE IF NOT EXISTS swap_events (
     id SERIAL PRIMARY KEY,
     pool_id INT NOT NULL,
-    tx_id INT NOT NULL,
+    tx_hash VARCHAR(128) NOT NULL,
     amount0 DECIMAL(80, 0),
     amount1 DECIMAL(80, 0),
     price DECIMAL(80, 80),

@@ -24,7 +24,8 @@ Redis:
   MasterName: ""
   DBNumber: 0
   Password: ""
-Repository:
-  Chain:
+Service:
+  Task:
+    BlockBatchSize: 300
     BlockTimeDelayThreshold: 60s
     BlockFinalization: 75 #Ethereum
