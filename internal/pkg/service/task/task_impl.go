@@ -189,7 +189,7 @@ func (s *TaskService) getLogs(ctx context.Context, cursorBlockNbr uint64, poolAd
 	latestBlockNbr := latestBlock.Number().Uint64()
 
 	fromBlock := cursorBlockNbr
-	toBlock := fromBlock + s.config.BlockBatchSize
+	toBlock := fromBlock + s.config.BlockBatchSize - 1
 	if toBlock > latestBlockNbr {
 		toBlock = latestBlockNbr
 	}

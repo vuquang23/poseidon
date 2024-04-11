@@ -54,6 +54,11 @@ func ScanTxs(taskSvc tasksvc.ITaskService) func(ctx context.Context, t *asynq.Ta
 			return err
 		}
 
-		return taskSvc.ScanTxs(ctx, payload)
+		err := taskSvc.ScanTxs(ctx, payload)
+		if err != nil && err != tasksvc.ErrInvalidBlockRange {
+			return err
+		}
+
+		return nil
 	}
 }
