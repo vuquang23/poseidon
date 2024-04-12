@@ -20,6 +20,7 @@ import (
 	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
 	pricerepo "github.com/vuquang23/poseidon/internal/pkg/repository/price"
 	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
+	timepkg "github.com/vuquang23/poseidon/internal/pkg/util/time"
 	"github.com/vuquang23/poseidon/internal/pkg/valueobject"
 	asynqpkg "github.com/vuquang23/poseidon/pkg/asynq"
 	"github.com/vuquang23/poseidon/pkg/binance"
@@ -255,6 +256,9 @@ func (s *TaskService) ScanTxs(ctx context.Context, task valueobject.TaskScanTxsP
 
 func (s *TaskService) GetETHUSDTKline(ctx context.Context, payload valueobject.TaskGetETHUSDTKlinePayload) error {
 	starTimeNsec := int64(payload.Time) * 1000
+
+	// TODO: check DB first to reduce call to binance!
+
 	klines, err := s.binanceClient.GetKlines(ctx, starTimeNsec, 0, 1, "ETHUSDT", "1m")
 	if err != nil {
 		return err
@@ -339,9 +343,19 @@ func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskF
 		)
 	}
 
+	logger.WithFields(ctx, logger.Fields{
+		"poolId":    poolID,
+		"fromBlock": fromBlock,
+		"toBlock":   toBlock,
+	}).Warn("reorg")
+
 	blockHashes := uniqueBlockHashes(logs)
 	headers, err := s.getBlockHeaders(ctx, blockHashes)
 	if err != nil {
+		return err
+	}
+
+	if err := s.enqueueTaskGetETHUSDTKlines(ctx, headers); err != nil {
 		return err
 	}
 
@@ -531,7 +545,7 @@ func (s *TaskService) enqueueTaskGetETHUSDTKlines(ctx context.Context, blockHead
 	exists := map[uint64]struct{}{}
 	for _, b := range blockHeaders {
 		// round down to the timestamp starting this minute
-		t := uint64(time.Unix(int64(b.Time), 0).Truncate(time.Minute).Unix())
+		t := uint64(timepkg.RoundDown(int64(b.Time), time.Minute))
 
 		if _, ok := exists[t]; ok {
 			continue

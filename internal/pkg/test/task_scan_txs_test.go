@@ -31,7 +31,7 @@ func (suite *TestSuite) TestTask_ScanTxs_Successfully() {
 	db.Exec(`INSERT INTO public.pools (id, address, start_block, token0, token0_decimals, token1, token1_decimals, created_at) VALUES(1, '0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640', 12379656, '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', 6, '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', 18, 1712856369);`)
 	db.Exec(`INSERT INTO public.block_cursors (id, pool_id, "type", block_number, extra, created_at, updated_at) VALUES(1, 1, 'scanner', 12379656, NULL, 1712856369, 1712856412);`)
 
-	// mock eth call
+	// mock call
 	ctrl := gomock.NewController(suite.T())
 	defer ctrl.Finish()
 
@@ -139,7 +139,7 @@ func (suite *TestSuite) TestTask_ScanTxs_Successfully() {
 }
 
 func (suite *TestSuite) TestTask_ScanTxs_Failed() {
-	name := "TestTask_ScanTxs_Failed"
+	name := "TestTask_ScanTxs_Failed: can not get tx receipt"
 	suite.T().Log(name)
 
 	var (
