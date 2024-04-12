@@ -20,4 +20,5 @@ type ITxRepository interface {
 	GetCursorByPoolIDAndType(ctx context.Context, poolID uint64, t valueobject.BlockCursorType) (*entity.BlockCursor, error)
 
 	GetTxsByPoolIDAndBlockRange(ctx context.Context, poolID uint64, fromBlock, toBlock uint64) ([]*entity.Tx, error)
+	GetTxByHash(ctx context.Context, hash string) (*entity.Tx, error)
 }

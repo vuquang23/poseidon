@@ -4,10 +4,12 @@ import (
 	"context"
 
 	"gorm.io/gorm"
+	"github.com/pkg/errors"
 
 	"github.com/vuquang23/poseidon/internal/pkg/entity"
 	"github.com/vuquang23/poseidon/internal/pkg/valueobject"
 	"github.com/vuquang23/poseidon/pkg/logger"
+	
 )
 
 type TxRepository struct {
@@ -148,4 +150,14 @@ func (r *TxRepository) UpdateDataFinalizer(
 
 		return nil
 	})
+}
+
+func (r *TxRepository) GetTxByHash(ctx context.Context, hash string) (*entity.Tx, error) {
+	var tx entity.Tx
+	if err := r.db.Where("tx_hash = ?", hash).Take(&tx).Error; err != nil {
+		logger.Error(ctx, err.Error())
+		return nil, errors.Wrap(ErrTxNotFound, err.Error())
+	}
+
+	return &tx, nil
 }

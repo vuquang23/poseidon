@@ -7,8 +7,11 @@ import (
 	"github.com/vuquang23/poseidon/internal/pkg/api"
 	"github.com/vuquang23/poseidon/internal/pkg/config"
 	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
+	pricerepo "github.com/vuquang23/poseidon/internal/pkg/repository/price"
+	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
 	"github.com/vuquang23/poseidon/internal/pkg/server"
 	poolsvc "github.com/vuquang23/poseidon/internal/pkg/service/pool"
+	txsvc "github.com/vuquang23/poseidon/internal/pkg/service/tx"
 	"github.com/vuquang23/poseidon/pkg/asynq"
 	"github.com/vuquang23/poseidon/pkg/logger"
 	"github.com/vuquang23/poseidon/pkg/postgres"
@@ -45,14 +48,17 @@ func RunAPI(c *cli.Context) error {
 
 	// repository
 	poolRepo := poolrepo.New(db, asynqClient)
+	txRepo := txrepo.New(db)
+	priceRepo := pricerepo.New(db)
 
 	// service
 	poolSvc := poolsvc.New(poolRepo)
+	txSvc := txsvc.New(txRepo, priceRepo)
 
 	// server
 	server := server.GinEngine(conf.Http, conf.Log, logger.LoggerBackendZap)
 
-	api.RegisterRoutes(&conf, server, poolSvc)
+	api.RegisterRoutes(&conf, server, poolSvc, txSvc)
 
 	return server.Run(conf.Http.BindAddress)
 }
