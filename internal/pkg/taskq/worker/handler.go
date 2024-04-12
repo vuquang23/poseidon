@@ -16,6 +16,7 @@ func RegisterHandlers(worker *Worker, taskSvc tasksvc.ITaskService) {
 	worker.RegisterHandler(valueobject.TaskTypeHandlePoolCreated, HandlePoolCreated(taskSvc))
 	worker.RegisterHandler(valueobject.TaskTypeScanTxs, ScanTxs(taskSvc))
 	worker.RegisterHandler(valueobject.TaskTypeGetETHUSDTKline, GetETHUSDTKline(taskSvc))
+	worker.RegisterHandler(valueobject.TaskTypeFinalizeTxs, FinalizeTxs(taskSvc))
 }
 
 func bindLoggerCtx(ctx context.Context, taskID, taskType string) context.Context {
@@ -97,7 +98,7 @@ func FinalizeTxs(taskSvc tasksvc.ITaskService) func(ctx context.Context, t *asyn
 		}
 
 		err := taskSvc.FinalizeTxs(ctx, payload)
-		if err != nil && err != tasksvc.ErrNoMoreFinalizedBlocks {
+		if err != nil && err != tasksvc.ErrInvalidBlockRange {
 			return err
 		}
 

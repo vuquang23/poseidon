@@ -292,42 +292,28 @@ func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskF
 		token1Decimals = payload.Token1Decimals
 	)
 
-	cursor, err := s.txRepo.GetCursorByPoolIDAndType(ctx, poolID, valueobject.BlockCursorTypeFinalizer)
+	finalizerCursor, err := s.txRepo.GetCursorByPoolIDAndType(ctx, poolID, valueobject.BlockCursorTypeFinalizer)
+	if err != nil {
+		return err
+	}
+	scannerCursor, err := s.txRepo.GetCursorByPoolIDAndType(ctx, poolID, valueobject.BlockCursorTypeScanner)
 	if err != nil {
 		return err
 	}
 
-	var extra valueobject.BlockCursorFinalizerExtra
-	extraBytes, err := cursor.Extra.MarshalJSON()
-	if err != nil {
-		logger.Error(ctx, err.Error())
-		return err
-	}
-	if err := json.Unmarshal(extraBytes, &extra); err != nil {
-		logger.Error(ctx, err.Error())
-		return err
-	}
-
-	if cursor.BlockNumber <= extra.CreatedAtFinalizedBlock {
-		return s.txRepo.UpdateDataFinalizer(ctx, poolID, cursor.ID, cursor.BlockNumber, extra.CreatedAtFinalizedBlock, nil, nil)
-	}
-
-	fromBlock := cursor.BlockNumber
-	toBlock := fromBlock + s.config.BlockBatchSize - 1
-	latestFinalizedBlockNbr, err := s.GetLatestFinalizedBlockNumber(ctx)
+	fromBlock, toBlock, finalizerCreatedAtFinalizedBlockNbr, err := s.initFinalizerBlockRange(ctx, finalizerCursor, scannerCursor)
 	if err != nil {
 		return err
 	}
-	if toBlock > latestFinalizedBlockNbr {
-		toBlock = latestFinalizedBlockNbr
+	if toBlock <= finalizerCreatedAtFinalizedBlockNbr {
+		return s.txRepo.UpdateDataFinalizer(ctx, poolID, finalizerCursor.ID, fromBlock, toBlock, nil, nil)
 	}
-	if fromBlock > toBlock {
-		logger.WithFields(ctx, logger.Fields{
-			"fromBlock": fromBlock,
-			"toBlock":   toBlock,
-		}).Error(ErrNoMoreFinalizedBlocks.Error())
-		return ErrNoMoreFinalizedBlocks
-	}
+
+	logger.WithFields(ctx, logger.Fields{
+		"poolId":    poolID,
+		"fromBlock": fromBlock,
+		"toBlock":   toBlock,
+	}).Info("finalize txs")
 
 	logs, err := s.ethClient.GetLogs(ctx, fromBlock, toBlock, []common.Address{common.HexToAddress(poolAddress)})
 	if err != nil {
@@ -344,7 +330,7 @@ func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskF
 	reorg := compareFinalizedTxsWithExistingTxs(txHashes, existingTxs)
 	if !reorg {
 		return s.txRepo.UpdateDataFinalizer(
-			ctx, poolID, cursor.ID, fromBlock, toBlock, nil, nil,
+			ctx, poolID, finalizerCursor.ID, fromBlock, toBlock, nil, nil,
 		)
 	}
 
@@ -372,7 +358,49 @@ func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskF
 		return err
 	}
 
-	return s.txRepo.UpdateDataFinalizer(ctx, poolID, cursor.ID, fromBlock, toBlock, txs, swapEvents)
+	return s.txRepo.UpdateDataFinalizer(ctx, poolID, finalizerCursor.ID, fromBlock, toBlock, txs, swapEvents)
+}
+
+func (s *TaskService) initFinalizerBlockRange(ctx context.Context, finalizerCursor, scannerCursor *entity.BlockCursor) (uint64, uint64, uint64, error) {
+	var extra valueobject.BlockCursorFinalizerExtra
+	extraBytes, err := finalizerCursor.Extra.MarshalJSON()
+	if err != nil {
+		logger.Error(ctx, err.Error())
+		return 0, 0, 0, err
+	}
+	if err := json.Unmarshal(extraBytes, &extra); err != nil {
+		logger.Error(ctx, err.Error())
+		return 0, 0, 0, err
+	}
+
+	fromBlock := finalizerCursor.BlockNumber
+	toBlock := fromBlock + s.config.BlockBatchSize - 1
+
+	latestFinalizedBlockNbr, err := s.GetLatestFinalizedBlockNumber(ctx)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	if toBlock > latestFinalizedBlockNbr {
+		toBlock = latestFinalizedBlockNbr
+	}
+
+	if toBlock > scannerCursor.BlockNumber {
+		toBlock = scannerCursor.BlockNumber
+	}
+
+	if fromBlock > toBlock { // node got issues
+		logger.WithFields(ctx, logger.Fields{
+			"fromBlock": fromBlock,
+			"toBlock":   toBlock,
+		}).Error(ErrInvalidBlockRange.Error())
+		return 0, 0, 0, ErrInvalidBlockRange
+	}
+
+	if fromBlock <= extra.CreatedAtFinalizedBlock && extra.CreatedAtFinalizedBlock <= toBlock {
+		toBlock = extra.CreatedAtFinalizedBlock
+	}
+
+	return fromBlock, toBlock, extra.CreatedAtFinalizedBlock, nil
 }
 
 // compareFinalizedTxsWithExistingTxs checks whether reorg occured.
