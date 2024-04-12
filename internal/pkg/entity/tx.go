@@ -16,6 +16,8 @@ type Tx struct {
 	Receipt     datatypes.JSON  `json:"-"`
 	IsFinalized bool            `json:"isFinalized"`
 	CreatedAt   uint64          `gorm:"autoCreateTime" json:"createdAt"`
+
+	SwapEvents []*SwapEvent `json:"swapEvents"`
 }
 
 func (Tx) TableName() string {

@@ -210,3 +210,38 @@ func (r *TxRepository) GetSwapEventsByTxHash(ctx context.Context, txHash string)
 
 	return ret, nil
 }
+
+func (r *TxRepository) GetTxs(ctx context.Context, poolAddress string, offset, limit uint) ([]*entity.Tx, int64, error) {
+	var (
+		txs   []*entity.Tx
+		total int64
+	)
+
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		subQuery := tx.Model(&entity.Pool{}).Where("address = ?", poolAddress).Select("id")
+
+		err := tx.Model(&entity.Tx{}).
+			Where("pool_id IN (?)", subQuery).
+			Preload("SwapEvents").
+			Order("block_number DESC").
+			Offset(int(offset)).
+			Limit(int(limit)).
+			Find(&txs).Error
+		if err != nil {
+			logger.Error(ctx, err.Error())
+			return err
+		}
+
+		err = tx.Model(&entity.Tx{}).
+			Where("pool_id IN (?)", subQuery).
+			Count(&total).Error
+		if err != nil {
+			logger.Error(ctx, err.Error())
+			return err
+		}
+
+		return nil
+	})
+
+	return txs, total, err
+}

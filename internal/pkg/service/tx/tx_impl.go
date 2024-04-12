@@ -9,6 +9,7 @@ import (
 	"github.com/vuquang23/poseidon/internal/pkg/entity"
 	pricerepo "github.com/vuquang23/poseidon/internal/pkg/repository/price"
 	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
+	"github.com/vuquang23/poseidon/internal/pkg/service/dto"
 	timepkg "github.com/vuquang23/poseidon/internal/pkg/util/time"
 )
 
@@ -53,4 +54,11 @@ func (s *TxService) GetSwapEventsByTxHash(ctx context.Context, txHash string) ([
 	}
 
 	return swapEvents, nil
+}
+
+func (s *TxService) GetTxs(ctx context.Context, query dto.GetTxsQuery) ([]*entity.Tx, int64, error) {
+	limit := query.PageSize
+	offset := (query.Page - 1) * query.PageSize
+
+	return s.txRepo.GetTxs(ctx, query.PoolAddress, offset, limit)
 }

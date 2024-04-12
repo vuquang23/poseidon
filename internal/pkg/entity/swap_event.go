@@ -2,8 +2,8 @@ package entity
 
 type SwapEvent struct {
 	ID        uint64 `gorm:"primaryKey;autoIncrement" json:"id"`
-	PoolID    uint64 `json:"poolId"`
-	TxID      uint64 `json:"txId"`
+	PoolID    uint64 `json:"-"`
+	TxID      uint64 `json:"-"`
 	Amount0   string `json:"amount0"`
 	Amount1   string `json:"amount1"`
 	Price     string `json:"price"`
