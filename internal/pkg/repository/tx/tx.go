@@ -21,6 +21,7 @@ type ITxRepository interface {
 
 	GetTxsByPoolIDAndBlockRange(ctx context.Context, poolID uint64, fromBlock, toBlock uint64) ([]*entity.Tx, error)
 	GetTxByHash(ctx context.Context, hash string) (*entity.Tx, error)
+	GetTxs(ctx context.Context, poolAddress string, offset, limit uint) ([]*entity.Tx, int64, error)
 
 	GetSwapEventsByTxHash(ctx context.Context, txHash string) ([]*entity.SwapEvent, error)
 }
