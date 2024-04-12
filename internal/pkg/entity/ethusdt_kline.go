@@ -2,6 +2,7 @@ package entity
 
 import "github.com/shopspring/decimal"
 
+// ETHUSDTKline "1m" interval kline.
 type ETHUSDTKline struct {
 	ID         uint64 `gorm:"primaryKey;autoIncrement"`
 	OpenTime   uint64

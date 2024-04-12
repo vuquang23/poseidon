@@ -15,6 +15,7 @@ import (
 	"github.com/shopspring/decimal"
 	"golang.org/x/sync/errgroup"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 
 	"github.com/vuquang23/poseidon/internal/pkg/entity"
 	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
@@ -257,7 +258,14 @@ func (s *TaskService) ScanTxs(ctx context.Context, task valueobject.TaskScanTxsP
 func (s *TaskService) GetETHUSDTKline(ctx context.Context, payload valueobject.TaskGetETHUSDTKlinePayload) error {
 	starTimeNsec := int64(payload.Time) * 1000
 
-	// TODO: check DB first to reduce call to binance!
+	_, err := s.priceRepo.GetKlineByOpenTime(ctx, starTimeNsec)
+	if err == nil { // exists in DB
+		return nil
+	}
+	// got another error rather than "ErrRecordNotFound"
+	if err != gorm.ErrRecordNotFound {
+		return err
+	}
 
 	klines, err := s.binanceClient.GetKlines(ctx, starTimeNsec, 0, 1, "ETHUSDT", "1m")
 	if err != nil {

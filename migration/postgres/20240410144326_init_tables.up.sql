@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS ethusdt_klines (
     low_price VARCHAR(32),
     close_price VARCHAR(32),
     ohlc4 DECIMAL(20, 10),
-    created_at BIGINT NOT NULL
+    created_at BIGINT NOT NULL,
+    UNIQUE (open_time)
 );
 
 CREATE TABLE IF NOT EXISTS block_cursors (
