@@ -207,7 +207,12 @@ func (s *TaskService) ScanTxs(ctx context.Context, task valueobject.TaskScanTxsP
 		return err
 	}
 
-	logs, fromBlock, toBlock, err := s.getLogs(ctx, cursor.BlockNumber, poolAddress)
+	fromBlock, toBlock, err := s.initScannerBlockRange(ctx, cursor)
+	if err != nil {
+		return err
+	}
+
+	logs, err := s.getLogs(ctx, fromBlock, toBlock, poolAddress)
 	if err != nil {
 		return err
 	}
@@ -315,7 +320,7 @@ func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskF
 		"toBlock":   toBlock,
 	}).Info("finalize txs")
 
-	logs, err := s.ethClient.GetLogs(ctx, fromBlock, toBlock, []common.Address{common.HexToAddress(poolAddress)})
+	logs, err := s.getLogs(ctx, fromBlock, toBlock, poolAddress)
 	if err != nil {
 		return err
 	}
@@ -361,6 +366,33 @@ func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskF
 	return s.txRepo.UpdateDataFinalizer(ctx, poolID, finalizerCursor.ID, fromBlock, toBlock, txs, swapEvents)
 }
 
+func (s *TaskService) initScannerBlockRange(ctx context.Context, scannerCursor *entity.BlockCursor) (uint64, uint64, error) {
+	latestBlockHeader, err := s.ethClient.GetLatestBlockHeader(ctx)
+	if err != nil {
+		return 0, 0, err
+	}
+	latestBlockNbr := latestBlockHeader.Number.Uint64()
+
+	fromBlock := scannerCursor.BlockNumber
+	toBlock := fromBlock + s.config.BlockBatchSize - 1
+	if toBlock > latestBlockNbr {
+		toBlock = latestBlockNbr
+	}
+
+	if fromBlock > toBlock { // node got issues
+		logger.WithFields(ctx, logger.Fields{
+			"poolId":         scannerCursor.PoolID,
+			"fromBlock":      fromBlock,
+			"toBlock":        toBlock,
+			"batchSize":      s.config.BlockBatchSize,
+			"latestBlockNbr": latestBlockNbr,
+		}).Error("invalid block range")
+		return 0, 0, ErrInvalidBlockRange
+	}
+
+	return fromBlock, toBlock, nil
+}
+
 func (s *TaskService) initFinalizerBlockRange(ctx context.Context, finalizerCursor, scannerCursor *entity.BlockCursor) (uint64, uint64, uint64, error) {
 	var extra valueobject.BlockCursorFinalizerExtra
 	extraBytes, err := finalizerCursor.Extra.MarshalJSON()
@@ -384,8 +416,8 @@ func (s *TaskService) initFinalizerBlockRange(ctx context.Context, finalizerCurs
 		toBlock = latestFinalizedBlockNbr
 	}
 
-	if toBlock > scannerCursor.BlockNumber {
-		toBlock = scannerCursor.BlockNumber
+	if toBlock > scannerCursor.BlockNumber-1 {
+		toBlock = scannerCursor.BlockNumber - 1
 	}
 
 	if fromBlock > toBlock { // node got issues
@@ -423,36 +455,8 @@ func compareFinalizedTxsWithExistingTxs(finalizedTxHashes []common.Hash, existin
 	return false
 }
 
-func (s *TaskService) getLogs(ctx context.Context, cursorBlockNbr uint64, poolAddress string) ([]types.Log, uint64, uint64, error) {
-	latestBlockHeader, err := s.ethClient.GetLatestBlockHeader(ctx)
-	if err != nil {
-		return nil, 0, 0, err
-	}
-	latestBlockNbr := latestBlockHeader.Number.Uint64()
-
-	fromBlock := cursorBlockNbr
-	toBlock := fromBlock + s.config.BlockBatchSize - 1
-	if toBlock > latestBlockNbr {
-		toBlock = latestBlockNbr
-	}
-
-	if fromBlock > toBlock {
-		logger.WithFields(ctx, logger.Fields{
-			"poolAddress":    poolAddress,
-			"fromBlock":      fromBlock,
-			"toBlock":        toBlock,
-			"batchSize":      s.config.BlockBatchSize,
-			"latestBlockNbr": latestBlockNbr,
-		}).Warn("invalid block range")
-		return nil, 0, 0, ErrInvalidBlockRange
-	}
-
-	logs, err := s.ethClient.GetLogs(ctx, fromBlock, toBlock, []common.Address{common.HexToAddress(poolAddress)})
-	if err != nil {
-		return nil, 0, 0, err
-	}
-
-	return logs, fromBlock, toBlock, nil
+func (s *TaskService) getLogs(ctx context.Context, fromBlock, toBlock uint64, poolAddress string) ([]types.Log, error) {
+	return s.ethClient.GetLogs(ctx, fromBlock, toBlock, []common.Address{common.HexToAddress(poolAddress)})
 }
 
 func (s *TaskService) getTxs(ctx context.Context, txHashes []common.Hash) ([]*types.Receipt, error) {
