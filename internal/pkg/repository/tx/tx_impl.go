@@ -3,13 +3,12 @@ package tx
 import (
 	"context"
 
-	"gorm.io/gorm"
 	"github.com/pkg/errors"
+	"gorm.io/gorm"
 
 	"github.com/vuquang23/poseidon/internal/pkg/entity"
 	"github.com/vuquang23/poseidon/internal/pkg/valueobject"
 	"github.com/vuquang23/poseidon/pkg/logger"
-	
 )
 
 type TxRepository struct {
@@ -160,4 +159,54 @@ func (r *TxRepository) GetTxByHash(ctx context.Context, hash string) (*entity.Tx
 	}
 
 	return &tx, nil
+}
+
+func (r *TxRepository) GetSwapEventsByTxHash(ctx context.Context, txHash string) ([]*entity.SwapEvent, error) {
+	type event struct {
+		ID        uint64
+		PoolID    uint64
+		TxID      uint64
+		Amount0   string
+		Amount1   string
+		Price     string
+		CreatedAt uint64
+		Address   string
+	}
+
+	var events []*event
+
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		subQuery := tx.Model(&entity.Tx{}).Where("tx_hash = ?", txHash).Select("id")
+
+		err := tx.Model(&entity.SwapEvent{}).
+			Where("tx_id IN (?)", subQuery).
+			Joins("LEFT JOIN pools ON swap_events.pool_id = pools.id").
+			Select("swap_events.id, swap_events.pool_id, swap_events.tx_id, swap_events.amount0, swap_events.amount1, swap_events.price, swap_events.created_at, pools.address").
+			Scan(&events).Error
+		if err != nil {
+			logger.Error(ctx, err.Error())
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	ret := make([]*entity.SwapEvent, 0, len(events))
+	for _, e := range events {
+		ret = append(ret, &entity.SwapEvent{
+			ID:          e.ID,
+			PoolID:      e.PoolID,
+			TxID:        e.TxID,
+			Amount0:     e.Amount0,
+			Amount1:     e.Amount1,
+			Price:       e.Price,
+			CreatedAt:   e.CreatedAt,
+			PoolAddress: e.Address,
+		})
+	}
+
+	return ret, nil
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/shopspring/decimal"
 
+	"github.com/vuquang23/poseidon/internal/pkg/entity"
 	pricerepo "github.com/vuquang23/poseidon/internal/pkg/repository/price"
 	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
 	timepkg "github.com/vuquang23/poseidon/internal/pkg/util/time"
@@ -43,4 +44,13 @@ func (s *TxService) GetTxFeeUSDT(ctx context.Context, txHash string) (decimal.De
 		Round(6)
 
 	return usdtValue, nil
+}
+
+func (s *TxService) GetSwapEventsByTxHash(ctx context.Context, txHash string) ([]*entity.SwapEvent, error) {
+	swapEvents, err := s.txRepo.GetSwapEventsByTxHash(ctx, txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return swapEvents, nil
 }

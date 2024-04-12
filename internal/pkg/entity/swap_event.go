@@ -9,5 +9,6 @@ type SwapEvent struct {
 	Price     string `json:"price"`
 	CreatedAt uint64 `gorm:"autoCreateTime" json:"createdAt"`
 
-	TxHash string `gorm:"-" json:"txHash,omitempty"`
+	TxHash      string `gorm:"-" json:"txHash,omitempty"`
+	PoolAddress string `gorm:"-" json:"poolAddress,omitempty"`
 }
