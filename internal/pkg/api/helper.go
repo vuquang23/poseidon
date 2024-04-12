@@ -8,11 +8,17 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/vuquang23/poseidon/internal/pkg/api/validator"
+	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
 	"github.com/vuquang23/poseidon/internal/pkg/util/requestid"
 	"github.com/vuquang23/poseidon/pkg/logger"
 )
 
-var ErrorResponseByError = map[error]ErrorResponse{}
+var ErrorResponseByError = map[error]ErrorResponse{
+	txrepo.ErrTxNotFound: {
+		Code:    4000,
+		Message: "tx hash not found",
+	},
+}
 
 type SuccessResponse struct {
 	Code      int         `json:"code"`
