@@ -132,7 +132,7 @@ func (suite *TestSuite) TestTask_ScanTxs_Successfully() {
 
 	var event entity.SwapEvent
 	db.First(&event)
-	suite.EqualValues("0x6594e6beb27a2bd0ea0d23599ffc4343aeab961438c5d1c5a38d53ae0431daf2", event.TxHash)
+	suite.EqualValues(tx.ID, event.TxID)
 	suite.EqualValues("986328433", event.Amount0)
 	suite.EqualValues("-286379270224318400", event.Amount1)
 	suite.EqualValues("3444.133482", event.Price)

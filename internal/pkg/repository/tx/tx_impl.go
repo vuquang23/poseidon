@@ -56,6 +56,15 @@ func (r *TxRepository) UpdateDataScanner(ctx context.Context, blockcursorID uint
 		}
 
 		if len(swapEvents) != 0 {
+			txIDByTxHash := map[string]uint64{}
+			for _, tx := range txs {
+				txIDByTxHash[tx.TxHash] = tx.ID
+			}
+
+			for _, e := range swapEvents {
+				e.TxID = txIDByTxHash[e.TxHash]
+			}
+
 			if err := tx.Create(&swapEvents).Error; err != nil {
 				logger.Error(ctx, err.Error())
 				return err
