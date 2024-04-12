@@ -232,10 +232,6 @@ func (s *TaskService) ScanTxs(ctx context.Context, task valueobject.TaskScanTxsP
 		return err
 	}
 
-	if err := s.enqueueTaskGetETHUSDTKlines(ctx, headers); err != nil {
-		return err
-	}
-
 	txHashes := uniqueTxHashes(logs)
 	txReceipts, err := s.getTxs(ctx, txHashes)
 	if err != nil {
@@ -249,6 +245,10 @@ func (s *TaskService) ScanTxs(ctx context.Context, task valueobject.TaskScanTxsP
 
 	swapEvents, err := initSwapEvents(ctx, poolID, token0Decimals, token1Decimals, logs)
 	if err != nil {
+		return err
+	}
+
+	if err := s.enqueueTaskGetETHUSDTKlines(ctx, headers); err != nil {
 		return err
 	}
 
@@ -357,10 +357,6 @@ func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskF
 		return err
 	}
 
-	if err := s.enqueueTaskGetETHUSDTKlines(ctx, headers); err != nil {
-		return err
-	}
-
 	receipts, err := s.getTxs(ctx, txHashes)
 	if err != nil {
 		return err
@@ -376,6 +372,10 @@ func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskF
 
 	swapEvents, err := initSwapEvents(ctx, poolID, token0Decimals, token1Decimals, logs)
 	if err != nil {
+		return err
+	}
+
+	if err := s.enqueueTaskGetETHUSDTKlines(ctx, headers); err != nil {
 		return err
 	}
 
