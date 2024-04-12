@@ -3,6 +3,7 @@ module github.com/vuquang23/poseidon
 go 1.21.3
 
 require (
+	github.com/adshao/go-binance/v2 v2.5.0
 	github.com/ethereum/go-ethereum v1.13.14
 	github.com/gin-contrib/cors v1.7.1
 	github.com/gin-contrib/requestid v1.0.0
@@ -30,6 +31,7 @@ require (
 require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
+	github.com/bitly/go-simplejson v0.5.0 // indirect
 	github.com/bits-and-blooms/bitset v1.10.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
 	github.com/bytedance/sonic v1.11.3 // indirect
@@ -56,7 +58,7 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
+	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect

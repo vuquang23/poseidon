@@ -18,35 +18,43 @@ import (
 
 	"github.com/vuquang23/poseidon/internal/pkg/entity"
 	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
+	pricerepo "github.com/vuquang23/poseidon/internal/pkg/repository/price"
 	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
 	"github.com/vuquang23/poseidon/internal/pkg/valueobject"
 	asynqpkg "github.com/vuquang23/poseidon/pkg/asynq"
+	"github.com/vuquang23/poseidon/pkg/binance"
 	"github.com/vuquang23/poseidon/pkg/eth"
 	"github.com/vuquang23/poseidon/pkg/logger"
 	"github.com/vuquang23/poseidon/pkg/uniswapv3"
 )
 
 type TaskService struct {
-	config      Config
-	poolRepo    poolrepo.IPoolRepository
-	txRepo      txrepo.ITxRepository
-	ethClient   eth.IClient
-	asynqClient asynqpkg.IAsynqClient
+	config        Config
+	poolRepo      poolrepo.IPoolRepository
+	txRepo        txrepo.ITxRepository
+	priceRepo     pricerepo.IPriceRepository
+	ethClient     eth.IClient
+	asynqClient   asynqpkg.IAsynqClient
+	binanceClient binance.IClient
 }
 
 func New(
 	config Config,
 	poolRepo poolrepo.IPoolRepository,
 	txRepo txrepo.ITxRepository,
+	priceRepo pricerepo.IPriceRepository,
 	ethClient eth.IClient,
 	asynqClient asynqpkg.IAsynqClient,
+	binanceClient binance.IClient,
 ) *TaskService {
 	return &TaskService{
-		config:      config,
-		poolRepo:    poolRepo,
-		txRepo:      txRepo,
-		ethClient:   ethClient,
-		asynqClient: asynqClient,
+		config:        config,
+		poolRepo:      poolRepo,
+		txRepo:        txRepo,
+		priceRepo:     priceRepo,
+		ethClient:     ethClient,
+		asynqClient:   asynqClient,
+		binanceClient: binanceClient,
 	}
 }
 
@@ -191,6 +199,42 @@ func (s *TaskService) ScanTxs(ctx context.Context, task valueobject.TaskScanTxsP
 	return s.txRepo.UpdateDataScanner(ctx, cursor.ID, toBlock+1, txs, swapEvents)
 }
 
+func (s *TaskService) GetETHUSDTKline(ctx context.Context, payload valueobject.TaskGetETHUSDTKlinePayload) error {
+	starTimeNsec := int64(payload.Time) * 1000
+	klines, err := s.binanceClient.GetKlines(ctx, starTimeNsec, 0, 1, "ETHUSDT", "1m")
+	if err != nil {
+		return err
+	}
+
+	if len(klines) == 0 {
+		logger.WithFields(ctx, logger.Fields{
+			"startTimeNsec": starTimeNsec,
+		}).Error(ErrEmptyKlines.Error())
+		return ErrEmptyKlines
+	}
+
+	kline := klines[0]
+
+	ohlc4 := decimal.NewFromInt(0).
+		Add(decimal.RequireFromString(kline.Open)).
+		Add(decimal.RequireFromString(kline.High)).
+		Add(decimal.RequireFromString(kline.Low)).
+		Add(decimal.RequireFromString(kline.Close)).
+		Div(decimal.NewFromInt(4)).Round(6)
+
+	e := entity.ETHUSDTKline{
+		OpenTime:   uint64(kline.OpenTime),
+		CloseTime:  uint64(kline.CloseTime),
+		OpenPrice:  kline.Open,
+		HighPrice:  kline.High,
+		LowPrice:   kline.Low,
+		ClosePrice: kline.Close,
+		OHLC4:      ohlc4,
+	}
+
+	return s.priceRepo.CreateKline(ctx, &e)
+}
+
 func (s *TaskService) getLogs(ctx context.Context, cursorBlockNbr uint64, poolAddress string) ([]types.Log, uint64, uint64, error) {
 	latestBlockHeader, err := s.ethClient.GetLatestBlockHeader(ctx)
 	if err != nil {
@@ -294,7 +338,10 @@ func (s *TaskService) getBlockHeaders(ctx context.Context, blockHashes []common.
 func (s *TaskService) enqueueTaskGetETHUSDTKlines(ctx context.Context, blockHeaders []*types.Header) error {
 	exists := map[uint64]struct{}{}
 	for _, b := range blockHeaders {
-		if _, ok := exists[b.Time]; ok {
+		// round down to the timestamp starting this minute
+		t := uint64(time.Unix(int64(b.Time), 0).Truncate(time.Minute).Unix())
+
+		if _, ok := exists[t]; ok {
 			continue
 		}
 
@@ -302,13 +349,13 @@ func (s *TaskService) enqueueTaskGetETHUSDTKlines(ctx context.Context, blockHead
 			ctx,
 			valueobject.TaskTypeGetETHUSDTKline,
 			"", "",
-			valueobject.TaskGetETHUSDTKlinePayload{Time: b.Time},
+			valueobject.TaskGetETHUSDTKlinePayload{Time: t},
 			-1,
 		); err != nil {
 			return err
 		}
 
-		exists[b.Time] = struct{}{}
+		exists[t] = struct{}{}
 	}
 
 	return nil

@@ -12,6 +12,7 @@ import (
 	"github.com/vuquang23/poseidon/internal/pkg/api"
 	"github.com/vuquang23/poseidon/internal/pkg/config"
 	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
+	pricerepo "github.com/vuquang23/poseidon/internal/pkg/repository/price"
 	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
 	poolsvc "github.com/vuquang23/poseidon/internal/pkg/service/pool"
 	tasksvc "github.com/vuquang23/poseidon/internal/pkg/service/task"
@@ -69,10 +70,11 @@ func (suite *TestSuite) SetupSuite() {
 	// repository
 	poolRepo = poolrepo.New(db, asynqClient)
 	txRepo := txrepo.New(db)
+	priceRepo := pricerepo.New(db)
 
 	// service
 	poolSvc := poolsvc.New(poolRepo)
-	taskSvc = tasksvc.New(conf.Service.Task, poolRepo, txRepo, nil, nil)
+	taskSvc = tasksvc.New(conf.Service.Task, poolRepo, txRepo, priceRepo, nil, nil, nil)
 
 	// server
 	ginEngine = gin.New()

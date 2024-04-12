@@ -40,10 +40,11 @@ CREATE TABLE IF NOT EXISTS ethusdt_klines (
     id SERIAL PRIMARY KEY,
     open_time BIGINT NOT NULL,
     close_time BIGINT NOT NULL,
-    open_price DECIMAL(10, 10),
-    high_price DECIMAL(10, 10),
-    low_price DECIMAL(10, 10),
-    close_price DECIMAL(10, 10),
+    open_price VARCHAR(32),
+    high_price VARCHAR(32),
+    low_price VARCHAR(32),
+    close_price VARCHAR(32),
+    ohlc4 DECIMAL(20, 10),
     created_at BIGINT NOT NULL
 );
 

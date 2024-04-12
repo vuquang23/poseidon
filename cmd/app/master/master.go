@@ -5,10 +5,8 @@ import (
 
 	"github.com/vuquang23/poseidon/internal/pkg/config"
 	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
-	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
 	tasksvc "github.com/vuquang23/poseidon/internal/pkg/service/task"
 	"github.com/vuquang23/poseidon/internal/pkg/taskq/master"
-	"github.com/vuquang23/poseidon/pkg/asynq"
 	"github.com/vuquang23/poseidon/pkg/logger"
 	"github.com/vuquang23/poseidon/pkg/postgres"
 )
@@ -31,18 +29,11 @@ func RunMaster(c *cli.Context) error {
 		return err
 	}
 
-	// asynq client
-	asynqClient, err := asynq.NewClient(conf.Redis)
-	if err != nil {
-		return err
-	}
-
 	// repository
-	poolRepo := poolrepo.New(db, asynqClient)
-	txRepo := txrepo.New(db)
+	poolRepo := poolrepo.New(db, nil)
 
 	// service
-	taskSvc := tasksvc.New(conf.Service.Task, poolRepo, txRepo, nil, asynqClient)
+	taskSvc := tasksvc.New(conf.Service.Task, poolRepo, nil, nil, nil, nil, nil)
 
 	m, err := master.New(conf.Redis, taskSvc)
 	if err != nil {

@@ -6,9 +6,10 @@ type ETHUSDTKline struct {
 	ID         uint64 `gorm:"primaryKey;autoIncrement"`
 	OpenTime   uint64
 	CloseTime  uint64
-	OpenPrice  decimal.Decimal
-	HighPrice  decimal.Decimal
-	LowPrice   decimal.Decimal
-	ClosePrice decimal.Decimal
-	CreatedAt  uint64 `gorm:"autoCreateTime"`
+	OpenPrice  string
+	HighPrice  string
+	LowPrice   string
+	ClosePrice string
+	OHLC4      decimal.Decimal `gorm:"ohlc4"`
+	CreatedAt  uint64          `gorm:"autoCreateTime"`
 }

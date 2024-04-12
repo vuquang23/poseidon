@@ -5,10 +5,12 @@ import (
 
 	"github.com/vuquang23/poseidon/internal/pkg/config"
 	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
+	pricerepo "github.com/vuquang23/poseidon/internal/pkg/repository/price"
 	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
 	tasksvc "github.com/vuquang23/poseidon/internal/pkg/service/task"
 	"github.com/vuquang23/poseidon/internal/pkg/taskq/worker"
 	"github.com/vuquang23/poseidon/pkg/asynq"
+	"github.com/vuquang23/poseidon/pkg/binance"
 	"github.com/vuquang23/poseidon/pkg/eth"
 	"github.com/vuquang23/poseidon/pkg/logger"
 	"github.com/vuquang23/poseidon/pkg/postgres"
@@ -44,12 +46,20 @@ func RunWorker(c *cli.Context) error {
 		return err
 	}
 
+	// binance client
+	binanceClient := binance.NewClient()
+
 	// repository
 	poolRepo := poolrepo.New(db, asynqClient)
 	txRepo := txrepo.New(db)
+	priceRepo := pricerepo.New(db)
 
 	// service
-	taskSvc := tasksvc.New(conf.Service.Task, poolRepo, txRepo, ethClient, asynqClient)
+	taskSvc := tasksvc.New(
+		conf.Service.Task,
+		poolRepo, txRepo, priceRepo,
+		ethClient, asynqClient, binanceClient,
+	)
 
 	// worker
 	w, err := worker.New(conf.Redis)

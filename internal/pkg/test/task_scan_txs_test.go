@@ -99,7 +99,7 @@ func (suite *TestSuite) TestTask_ScanTxs_Successfully() {
 
 	mockAsynqClient := asynq.NewMockIAsynqClient(ctrl)
 	mockAsynqClient.EXPECT().EnqueueTask(
-		gomock.Any(), valueobject.TaskTypeGetETHUSDTKline, "", "", valueobject.TaskGetETHUSDTKlinePayload{Time: 1620289565}, -1,
+		gomock.Any(), valueobject.TaskTypeGetETHUSDTKline, "", "", valueobject.TaskGetETHUSDTKlinePayload{Time: 1620289560}, -1,
 	).Return(nil).Times(1)
 
 	taskSvc.SetEthClient(mockEthClient)
