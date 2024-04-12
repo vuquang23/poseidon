@@ -1,0 +1,46 @@
+package tx
+
+import (
+	"context"
+	"time"
+
+	"github.com/shopspring/decimal"
+
+	pricerepo "github.com/vuquang23/poseidon/internal/pkg/repository/price"
+	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
+	timepkg "github.com/vuquang23/poseidon/internal/pkg/util/time"
+)
+
+type TxService struct {
+	txRepo    txrepo.ITxRepository
+	priceRepo pricerepo.IPriceRepository
+}
+
+func New(txRepo txrepo.ITxRepository, priceRepo pricerepo.IPriceRepository) *TxService {
+	return &TxService{
+		txRepo:    txRepo,
+		priceRepo: priceRepo,
+	}
+}
+
+func (s *TxService) GetTxFeeUSDT(ctx context.Context, txHash string) (decimal.Decimal, error) {
+	tx, err := s.txRepo.GetTxByHash(ctx, txHash)
+	if err != nil {
+		return decimal.Decimal{}, err
+	}
+
+	blockTime := tx.BlockTime
+	openTimeNSec := 1000 * timepkg.RoundDown(int64(blockTime), time.Minute)
+	kline, err := s.priceRepo.GetKlineByOpenTime(ctx, openTimeNSec)
+	if err != nil {
+		return decimal.Decimal{}, err
+	}
+
+	usdtValue := decimal.NewFromInt(int64(tx.Gas)).
+		Mul(tx.GasPrice).
+		Mul(kline.OHLC4).
+		Div(decimal.New(1, 18)).
+		Round(6)
+
+	return usdtValue, nil
+}

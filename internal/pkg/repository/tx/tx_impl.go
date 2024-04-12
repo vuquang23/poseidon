@@ -149,3 +149,13 @@ func (r *TxRepository) UpdateDataFinalizer(
 		return nil
 	})
 }
+
+func (r *TxRepository) GetTxByHash(ctx context.Context, hash string) (*entity.Tx, error) {
+	var tx entity.Tx
+	if err := r.db.Where("tx_hash = ?", hash).Take(&tx).Error; err != nil {
+		logger.Error(ctx, err.Error())
+		return nil, err
+	}
+
+	return &tx, nil
+}
