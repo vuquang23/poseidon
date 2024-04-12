@@ -28,3 +28,22 @@ func GetTxFeeUSDT(txSvc tx.ITxService) gin.HandlerFunc {
 		RespondSuccess(c, dto.GetTxFeeResp{FeeUSDT: feeUSDT})
 	}
 }
+
+func GetSwapEvents(txSvc tx.ITxService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req dto.GetSwapEventsReq
+		if err := c.ShouldBindQuery(&req); err != nil {
+			logger.Error(c, err.Error())
+			RespondFailure(c, err)
+			return
+		}
+
+		events, err := txSvc.GetSwapEventsByTxHash(c, strings.ToLower(req.TxHash))
+		if err != nil {
+			RespondFailure(c, err)
+			return
+		}
+
+		RespondSuccess(c, dto.GetSwapEventsResp{Events: events})
+	}
+}

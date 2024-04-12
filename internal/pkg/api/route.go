@@ -28,4 +28,5 @@ func RegisterRoutes(
 
 	// tx
 	router.GET("txs/fee-usdt", GetTxFeeUSDT(txSvc))
+	router.GET("txs/swap-events", GetSwapEvents(txSvc))
 }
