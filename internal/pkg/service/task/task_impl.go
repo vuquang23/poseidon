@@ -313,9 +313,13 @@ func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskF
 	}
 
 	fromBlock := cursor.BlockNumber
-	toBlock, err := s.GetLatestFinalizedBlockNumber(ctx)
+	toBlock := fromBlock + s.config.BlockBatchSize - 1
+	latestFinalizedBlockNbr, err := s.GetLatestFinalizedBlockNumber(ctx)
 	if err != nil {
 		return err
+	}
+	if toBlock > latestFinalizedBlockNbr {
+		toBlock = latestFinalizedBlockNbr
 	}
 	if fromBlock > toBlock {
 		logger.WithFields(ctx, logger.Fields{
