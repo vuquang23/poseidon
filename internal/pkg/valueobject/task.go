@@ -6,6 +6,7 @@ const (
 	TaskTypeHandlePoolCreated = "handle_pool_created"
 	TaskTypeGetETHUSDTKline   = "get_ethusdt_kline"
 	TaskTypeScanTxs           = "scan_txs"
+	TaskTypeFinalizeTxs       = "finalize_txs"
 )
 
 type TaskHandlePoolCreatedPayload struct {
@@ -21,4 +22,9 @@ type TaskScanTxsPayload struct {
 
 type TaskGetETHUSDTKlinePayload struct {
 	Time uint64 `json:"time"`
+}
+
+type TaskFinalizeTxsPayload struct {
+	PoolID      uint64 `json:"poolId"`
+	PoolAddress string `json:"poolAddress"`
 }

@@ -75,6 +75,53 @@ func (s *TaskService) GetPeriodicTaskConfigs(ctx context.Context) ([]*asynq.Peri
 	}
 
 	var configs []*asynq.PeriodicTaskConfig
+
+	scanTxsTaskConfigs, err := s.initScanTxsTaskConfigs(ctx, pools)
+	if err != nil {
+		return nil, err
+	}
+
+	finalizerTxsTaskConfigs, err := s.initFinalizeTxsTaskConfigs(ctx, pools)
+	if err != nil {
+		return nil, err
+	}
+
+	configs = append(configs, scanTxsTaskConfigs...)
+	configs = append(configs, finalizerTxsTaskConfigs...)
+
+	return configs, nil
+}
+
+func (s *TaskService) initFinalizeTxsTaskConfigs(ctx context.Context, pools []*entity.Pool) ([]*asynq.PeriodicTaskConfig, error) {
+	var configs []*asynq.PeriodicTaskConfig
+	for _, p := range pools {
+		payload := valueobject.TaskFinalizeTxsPayload{
+			PoolID:      p.ID,
+			PoolAddress: p.Address,
+		}
+		payloadBytes, err := json.Marshal(payload)
+		if err != nil {
+			logger.Error(ctx, err.Error())
+			return nil, err
+		}
+
+		t := asynq.NewTask(
+			valueobject.TaskTypeFinalizeTxs,
+			payloadBytes,
+			asynq.TaskID(fmt.Sprintf("%s:%s", valueobject.TaskTypeFinalizeTxs, p.Address)),
+		)
+
+		configs = append(configs, &asynq.PeriodicTaskConfig{
+			Cronspec: s.config.Cronspec,
+			Task:     t,
+		})
+	}
+
+	return configs, nil
+}
+
+func (s *TaskService) initScanTxsTaskConfigs(ctx context.Context, pools []*entity.Pool) ([]*asynq.PeriodicTaskConfig, error) {
+	var configs []*asynq.PeriodicTaskConfig
 	for _, p := range pools {
 		payload := valueobject.TaskScanTxsPayload{
 			PoolID:         p.ID,
