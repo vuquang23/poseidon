@@ -27,12 +27,13 @@ CREATE TABLE IF NOT EXISTS txs (
 CREATE TABLE IF NOT EXISTS swap_events (
     id SERIAL PRIMARY KEY,
     pool_id INT NOT NULL,
-    tx_hash VARCHAR(128) NOT NULL,
+    tx_id INT NOT NULL,
     amount0 VARCHAR(128),
     amount1 VARCHAR(128),
     price VARCHAR(128),
     created_at BIGINT NOT NULL,
-    FOREIGN KEY (pool_id) REFERENCES pools(id) ON DELETE CASCADE
+    FOREIGN KEY (pool_id) REFERENCES pools(id) ON DELETE CASCADE,
+    FOREIGN KEY (tx_id) REFERENCES txs(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS ethusdt_klines (
