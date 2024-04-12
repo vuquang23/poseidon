@@ -14,4 +14,5 @@ type ITaskService interface {
 	HandlePoolCreated(ctx context.Context, poolAddress string) error
 	ScanTxs(ctx context.Context, payload valueobject.TaskScanTxsPayload) error
 	GetETHUSDTKline(ctx context.Context, payload valueobject.TaskGetETHUSDTKlinePayload) error
+	FinalizeTxs(ctx context.Context, payload valueobject.TaskFinalizeTxsPayload) error
 }

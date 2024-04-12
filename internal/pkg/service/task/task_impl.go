@@ -96,8 +96,10 @@ func (s *TaskService) initFinalizeTxsTaskConfigs(ctx context.Context, pools []*e
 	var configs []*asynq.PeriodicTaskConfig
 	for _, p := range pools {
 		payload := valueobject.TaskFinalizeTxsPayload{
-			PoolID:      p.ID,
-			PoolAddress: p.Address,
+			PoolID:         p.ID,
+			PoolAddress:    p.Address,
+			Token0Decimals: p.Token0Decimals,
+			Token1Decimals: p.Token1Decimals,
 		}
 		payloadBytes, err := json.Marshal(payload)
 		if err != nil {
@@ -280,6 +282,113 @@ func (s *TaskService) GetETHUSDTKline(ctx context.Context, payload valueobject.T
 	}
 
 	return s.priceRepo.CreateKline(ctx, &e)
+}
+
+func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskFinalizeTxsPayload) error {
+	var (
+		poolID         = payload.PoolID
+		poolAddress    = payload.PoolAddress
+		token0Decimals = payload.Token0Decimals
+		token1Decimals = payload.Token1Decimals
+	)
+
+	cursor, err := s.txRepo.GetCursorByPoolIDAndType(ctx, poolID, valueobject.BlockCursorTypeFinalizer)
+	if err != nil {
+		return err
+	}
+
+	var extra valueobject.BlockCursorFinalizerExtra
+	extraBytes, err := cursor.Extra.MarshalJSON()
+	if err != nil {
+		logger.Error(ctx, err.Error())
+		return err
+	}
+	if err := json.Unmarshal(extraBytes, &extra); err != nil {
+		logger.Error(ctx, err.Error())
+		return err
+	}
+
+	if cursor.BlockNumber <= extra.CreatedAtFinalizedBlock {
+		return s.txRepo.UpdateDataFinalizer(ctx, poolID, cursor.ID, cursor.BlockNumber, extra.CreatedAtFinalizedBlock, nil, nil)
+	}
+
+	fromBlock := cursor.BlockNumber
+	toBlock, err := s.GetLatestFinalizedBlockNumber(ctx)
+	if err != nil {
+		return err
+	}
+	if fromBlock > toBlock {
+		logger.WithFields(ctx, logger.Fields{
+			"fromBlock": fromBlock,
+			"toBlock":   toBlock,
+		}).Error(ErrNoMoreFinalizedBlocks.Error())
+		return ErrNoMoreFinalizedBlocks
+	}
+
+	logs, err := s.ethClient.GetLogs(ctx, fromBlock, toBlock, []common.Address{common.HexToAddress(poolAddress)})
+	if err != nil {
+		return err
+	}
+
+	txHashes := uniqueTxHashes(logs)
+
+	existingTxs, err := s.txRepo.GetTxsByPoolIDAndBlockRange(ctx, poolID, fromBlock, toBlock)
+	if err != nil {
+		return err
+	}
+
+	reorg := compareFinalizedTxsWithExistingTxs(txHashes, existingTxs)
+	if !reorg {
+		return s.txRepo.UpdateDataFinalizer(
+			ctx, poolID, cursor.ID, fromBlock, toBlock, nil, nil,
+		)
+	}
+
+	blockHashes := uniqueBlockHashes(logs)
+	headers, err := s.getBlockHeaders(ctx, blockHashes)
+	if err != nil {
+		return err
+	}
+
+	receipts, err := s.getTxs(ctx, txHashes)
+	if err != nil {
+		return err
+	}
+
+	txs, err := initTxs(ctx, poolID, headers, receipts)
+	if err != nil {
+		return err
+	}
+	for _, tx := range txs {
+		tx.IsFinalized = true
+	}
+
+	swapEvents, err := initSwapEvents(ctx, poolID, token0Decimals, token1Decimals, logs)
+	if err != nil {
+		return err
+	}
+
+	return s.txRepo.UpdateDataFinalizer(ctx, poolID, cursor.ID, fromBlock, toBlock, txs, swapEvents)
+}
+
+// compareFinalizedTxsWithExistingTxs checks whether reorg occured.
+func compareFinalizedTxsWithExistingTxs(finalizedTxHashes []common.Hash, existingTxs []*entity.Tx) bool {
+	if len(finalizedTxHashes) != len(existingTxs) {
+		return true
+	}
+
+	m := make(map[string]struct{})
+	for _, h := range finalizedTxHashes {
+		m[strings.ToLower(h.Hex())] = struct{}{}
+	}
+
+	for _, tx := range existingTxs {
+		if _, ok := m[tx.TxHash]; !ok {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *TaskService) getLogs(ctx context.Context, cursorBlockNbr uint64, poolAddress string) ([]types.Log, uint64, uint64, error) {

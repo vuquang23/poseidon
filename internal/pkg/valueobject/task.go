@@ -25,6 +25,8 @@ type TaskGetETHUSDTKlinePayload struct {
 }
 
 type TaskFinalizeTxsPayload struct {
-	PoolID      uint64 `json:"poolId"`
-	PoolAddress string `json:"poolAddress"`
+	PoolID         uint64 `json:"poolId"`
+	PoolAddress    string `json:"poolAddress"`
+	Token0Decimals uint   `json:"token0Decimals"`
+	Token1Decimals uint   `json:"token1Decimals"`
 }

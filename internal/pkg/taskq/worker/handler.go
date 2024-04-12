@@ -81,3 +81,26 @@ func GetETHUSDTKline(taskSvc tasksvc.ITaskService) func(ctx context.Context, t *
 		return taskSvc.GetETHUSDTKline(ctx, payload)
 	}
 }
+
+func FinalizeTxs(taskSvc tasksvc.ITaskService) func(ctx context.Context, t *asynq.Task) error {
+	return func(ctx context.Context, t *asynq.Task) error {
+		taskID, _ := asynq.GetTaskID(ctx)
+		ctx = bindLoggerCtx(ctx, taskID, valueobject.TaskTypeFinalizeTxs)
+
+		finish := timer.Start(ctx, taskID)
+		defer finish()
+
+		var payload valueobject.TaskFinalizeTxsPayload
+		if err := json.Unmarshal(t.Payload(), &payload); err != nil {
+			logger.Error(ctx, err.Error())
+			return err
+		}
+
+		err := taskSvc.FinalizeTxs(ctx, payload)
+		if err != nil && err != tasksvc.ErrNoMoreFinalizedBlocks {
+			return err
+		}
+
+		return nil
+	}
+}

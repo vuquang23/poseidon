@@ -3,8 +3,9 @@ package task
 import "errors"
 
 var (
-	ErrBlockNotFound      = errors.New("block not found")
-	ErrInvalidBlockRange  = errors.New("invalid block range")
-	ErrInvalidLatestBlock = errors.New("invalid latest block")
-	ErrEmptyKlines        = errors.New("empty klines")
+	ErrBlockNotFound         = errors.New("block not found")
+	ErrInvalidBlockRange     = errors.New("invalid block range")
+	ErrInvalidLatestBlock    = errors.New("invalid latest block")
+	ErrEmptyKlines           = errors.New("empty klines")
+	ErrNoMoreFinalizedBlocks = errors.New("no more finalized blocks")
 )
