@@ -66,3 +66,36 @@ func (suite *TestSuite) TestAPI_GetTxs_Successfully() {
 	}
 	suite.EqualValues(expected, actualResBody)
 }
+
+func (suite *TestSuite) TestAPI_GetTxs_Failed_1() {
+	name := "TestAPI_GetTxs_Failed_1: invalid pool address"
+	suite.T().Log(name)
+
+	// call API
+	method := "GET"
+	endpoint := fmt.Sprintf("/api/v1/txs?poolAddress=%s&pageSize=1", "0x_invalid")
+
+	/// call
+	req, _ := http.NewRequest(method, endpoint, nil)
+	w := httptest.NewRecorder()
+	ginEngine.ServeHTTP(w, req)
+	responseData, _ := io.ReadAll(w.Body)
+
+	// assert response
+	suite.EqualValues(http.StatusBadRequest, w.Code)
+	actualResBody := map[string]interface{}{}
+	json.Unmarshal(responseData, &actualResBody)
+	expected := map[string]interface{}{
+		"code": float64(4000),
+		"details": []interface{}{
+			map[string]interface{}{
+				"fieldViolations": []interface{}{
+					map[string]interface{}{"description": "invalid", "field": "poolAddress"},
+				},
+			},
+		},
+		"message":   "bad request",
+		"requestId": "",
+	}
+	suite.EqualValues(expected, actualResBody)
+}
