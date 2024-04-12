@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS ethusdt_klines (
     high_price VARCHAR(32),
     low_price VARCHAR(32),
     close_price VARCHAR(32),
-    ohlc4 DECIMAL(10, 10),
+    ohlc4 DECIMAL(20, 10),
     created_at BIGINT NOT NULL
 );
 

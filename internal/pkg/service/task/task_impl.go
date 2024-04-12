@@ -220,7 +220,7 @@ func (s *TaskService) GetETHUSDTKline(ctx context.Context, payload valueobject.T
 		Add(decimal.RequireFromString(kline.High)).
 		Add(decimal.RequireFromString(kline.Low)).
 		Add(decimal.RequireFromString(kline.Close)).
-		Div(decimal.NewFromInt(4))
+		Div(decimal.NewFromInt(4)).Round(6)
 
 	e := entity.ETHUSDTKline{
 		OpenTime:   uint64(kline.OpenTime),
