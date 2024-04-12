@@ -215,13 +215,7 @@ func (suite *TestSuite) TestTask_ScanTxs_Failed() {
 		GetTxReceipt(gomock.Any(), common.HexToHash("0x6594e6beb27a2bd0ea0d23599ffc4343aeab961438c5d1c5a38d53ae0431daf2")).
 		Return(nil, errGetReceiptFailed)
 
-	mockAsynqClient := asynq.NewMockIAsynqClient(ctrl)
-	mockAsynqClient.EXPECT().EnqueueTask(
-		gomock.Any(), valueobject.TaskTypeGetETHUSDTKline, "", "", valueobject.TaskGetETHUSDTKlinePayload{Time: 1620289565}, -1,
-	).Return(nil).Times(1)
-
 	taskSvc.SetEthClient(mockEthClient)
-	taskSvc.SetAsynqClient(mockAsynqClient)
 
 	// handle
 	payload := valueobject.TaskScanTxsPayload{

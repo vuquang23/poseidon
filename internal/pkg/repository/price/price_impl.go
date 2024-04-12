@@ -27,3 +27,13 @@ func (r *PriceRepository) CreateKline(ctx context.Context, e *entity.ETHUSDTKlin
 
 	return nil
 }
+
+func (r *PriceRepository) GetKlineByOpenTime(ctx context.Context, openTimeNsec int64) (*entity.ETHUSDTKline, error) {
+	var e entity.ETHUSDTKline
+	if err := r.db.Where("open_time = ?", openTimeNsec).Take(&e).Error; err != nil {
+		logger.Error(ctx, err.Error())
+		return nil, err
+	}
+
+	return &e, nil
+}
