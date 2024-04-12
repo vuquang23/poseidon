@@ -318,12 +318,6 @@ func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskF
 		return s.txRepo.UpdateDataFinalizer(ctx, poolID, finalizerCursor.ID, fromBlock, toBlock, nil, nil)
 	}
 
-	logger.WithFields(ctx, logger.Fields{
-		"poolId":    poolID,
-		"fromBlock": fromBlock,
-		"toBlock":   toBlock,
-	}).Info("finalize txs")
-
 	logs, err := s.getLogs(ctx, fromBlock, toBlock, poolAddress)
 	if err != nil {
 		return err
@@ -408,16 +402,6 @@ func (s *TaskService) initScannerBlockRange(ctx context.Context, scannerCursor *
 }
 
 func (s *TaskService) initFinalizerBlockRange(ctx context.Context, finalizerCursor, scannerCursor *entity.BlockCursor) (uint64, uint64, uint64, error) {
-	var extra valueobject.BlockCursorFinalizerExtra
-	extraBytes, err := finalizerCursor.Extra.MarshalJSON()
-	if err != nil {
-		logger.Error(ctx, err.Error())
-		return 0, 0, 0, err
-	}
-	if err := json.Unmarshal(extraBytes, &extra); err != nil {
-		logger.Error(ctx, err.Error())
-		return 0, 0, 0, err
-	}
 
 	fromBlock := finalizerCursor.BlockNumber
 	toBlock := fromBlock + s.config.BlockBatchSize - 1
@@ -440,6 +424,17 @@ func (s *TaskService) initFinalizerBlockRange(ctx context.Context, finalizerCurs
 			"toBlock":   toBlock,
 		}).Error(ErrInvalidBlockRange.Error())
 		return 0, 0, 0, ErrInvalidBlockRange
+	}
+
+	var extra valueobject.BlockCursorFinalizerExtra
+	extraBytes, err := finalizerCursor.Extra.MarshalJSON()
+	if err != nil {
+		logger.Error(ctx, err.Error())
+		return 0, 0, 0, err
+	}
+	if err := json.Unmarshal(extraBytes, &extra); err != nil {
+		logger.Error(ctx, err.Error())
+		return 0, 0, 0, err
 	}
 
 	if fromBlock <= extra.CreatedAtFinalizedBlock && extra.CreatedAtFinalizedBlock <= toBlock {
