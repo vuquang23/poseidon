@@ -294,7 +294,10 @@ func (s *TaskService) getBlockHeaders(ctx context.Context, blockHashes []common.
 func (s *TaskService) enqueueTaskGetETHUSDTKlines(ctx context.Context, blockHeaders []*types.Header) error {
 	exists := map[uint64]struct{}{}
 	for _, b := range blockHeaders {
-		if _, ok := exists[b.Time]; ok {
+		// round down to the timestamp starting this minute
+		t := uint64(time.Unix(int64(b.Time), 0).Truncate(time.Minute).Unix())
+
+		if _, ok := exists[t]; ok {
 			continue
 		}
 
@@ -302,13 +305,13 @@ func (s *TaskService) enqueueTaskGetETHUSDTKlines(ctx context.Context, blockHead
 			ctx,
 			valueobject.TaskTypeGetETHUSDTKline,
 			"", "",
-			valueobject.TaskGetETHUSDTKlinePayload{Time: b.Time},
+			valueobject.TaskGetETHUSDTKlinePayload{Time: t},
 			-1,
 		); err != nil {
 			return err
 		}
 
-		exists[b.Time] = struct{}{}
+		exists[t] = struct{}{}
 	}
 
 	return nil
