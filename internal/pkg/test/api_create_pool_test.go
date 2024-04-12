@@ -71,7 +71,7 @@ func (suite *TestSuite) TestAPI_CreatePool_Successfully() {
 }
 
 func (suite *TestSuite) TestAPI_CreatePool_Failed() {
-	name := "TestAPI_CreatePool_Failed: create pool failed"
+	name := "TestAPI_CreatePool_Failed: invalid pool address"
 	suite.T().Log(name)
 
 	ctrl := gomock.NewController(suite.T())

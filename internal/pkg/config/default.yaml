@@ -1,7 +1,7 @@
 Common:
   APIKey: 0x_hello_world
 Eth:
-  RPC: https://rpc.ankr.com/eth
+  RPC: https://eth.meowrpc.com
 Http:
   BindAddress: ":8080"
   Mode: debug #(debug,release,test)

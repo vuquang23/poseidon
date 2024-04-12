@@ -74,3 +74,78 @@ func (r *TxRepository) UpdateDataScanner(ctx context.Context, blockcursorID uint
 		return nil
 	})
 }
+
+func (r *TxRepository) GetTxsByPoolIDAndBlockRange(ctx context.Context, poolID uint64, fromBlock, toBlock uint64) ([]*entity.Tx, error) {
+	var txs []*entity.Tx
+	if err := r.db.
+		Where("pool_id = ?", poolID).
+		Where("block_number >= ? AND block_number <= ?", fromBlock, toBlock).
+		Find(&txs).Error; err != nil {
+		logger.Error(ctx, err.Error())
+		return nil, err
+	}
+
+	return txs, nil
+}
+
+func (r *TxRepository) UpdateDataFinalizer(
+	ctx context.Context,
+	poolID, cursorID uint64,
+	fromBlock, toBlock uint64,
+	newTxs []*entity.Tx, newSwapEvents []*entity.SwapEvent,
+) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&entity.BlockCursor{}).
+			Where("id = ?", cursorID).
+			Update("block_number", toBlock+1).Error; err != nil {
+			logger.Error(ctx, err.Error())
+			return err
+		}
+
+		if len(newTxs) == 0 {
+			err := tx.Model(&entity.Tx{}).
+				Where("pool_id = ?", poolID).
+				Where("block_number >= ? AND block_number <= ?", fromBlock, toBlock).
+				Update("is_finalized", true).Error
+			if err != nil {
+				logger.Error(ctx, err.Error())
+				return err
+			}
+
+			return nil
+		}
+
+		err := tx.Where("pool_id = ?", poolID).
+			Where("block_number >= ? AND block_number <= ?", fromBlock, toBlock).
+			Delete(&entity.Tx{}).Error
+		if err != nil {
+			logger.Error(ctx, err.Error())
+			return err
+		}
+
+		if err := tx.Create(&newTxs).Error; err != nil {
+			logger.Error(ctx, err.Error())
+			return err
+		}
+
+		if len(newSwapEvents) == 0 {
+			return nil
+		}
+
+		txIDByTxHash := map[string]uint64{}
+		for _, tx := range newTxs {
+			txIDByTxHash[tx.TxHash] = tx.ID
+		}
+
+		for _, e := range newSwapEvents {
+			e.TxID = txIDByTxHash[e.TxHash]
+		}
+
+		if err := tx.Create(&newSwapEvents).Error; err != nil {
+			logger.Error(ctx, err.Error())
+			return err
+		}
+
+		return nil
+	})
+}

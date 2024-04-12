@@ -20,6 +20,7 @@ import (
 	poolrepo "github.com/vuquang23/poseidon/internal/pkg/repository/pool"
 	pricerepo "github.com/vuquang23/poseidon/internal/pkg/repository/price"
 	txrepo "github.com/vuquang23/poseidon/internal/pkg/repository/tx"
+	timepkg "github.com/vuquang23/poseidon/internal/pkg/util/time"
 	"github.com/vuquang23/poseidon/internal/pkg/valueobject"
 	asynqpkg "github.com/vuquang23/poseidon/pkg/asynq"
 	"github.com/vuquang23/poseidon/pkg/binance"
@@ -74,6 +75,55 @@ func (s *TaskService) GetPeriodicTaskConfigs(ctx context.Context) ([]*asynq.Peri
 		return nil, err
 	}
 
+	var configs []*asynq.PeriodicTaskConfig
+
+	scanTxsTaskConfigs, err := s.initScanTxsTaskConfigs(ctx, pools)
+	if err != nil {
+		return nil, err
+	}
+
+	finalizerTxsTaskConfigs, err := s.initFinalizeTxsTaskConfigs(ctx, pools)
+	if err != nil {
+		return nil, err
+	}
+
+	configs = append(configs, scanTxsTaskConfigs...)
+	configs = append(configs, finalizerTxsTaskConfigs...)
+
+	return configs, nil
+}
+
+func (s *TaskService) initFinalizeTxsTaskConfigs(ctx context.Context, pools []*entity.Pool) ([]*asynq.PeriodicTaskConfig, error) {
+	var configs []*asynq.PeriodicTaskConfig
+	for _, p := range pools {
+		payload := valueobject.TaskFinalizeTxsPayload{
+			PoolID:         p.ID,
+			PoolAddress:    p.Address,
+			Token0Decimals: p.Token0Decimals,
+			Token1Decimals: p.Token1Decimals,
+		}
+		payloadBytes, err := json.Marshal(payload)
+		if err != nil {
+			logger.Error(ctx, err.Error())
+			return nil, err
+		}
+
+		t := asynq.NewTask(
+			valueobject.TaskTypeFinalizeTxs,
+			payloadBytes,
+			asynq.TaskID(fmt.Sprintf("%s:%s", valueobject.TaskTypeFinalizeTxs, p.Address)),
+		)
+
+		configs = append(configs, &asynq.PeriodicTaskConfig{
+			Cronspec: s.config.Cronspec,
+			Task:     t,
+		})
+	}
+
+	return configs, nil
+}
+
+func (s *TaskService) initScanTxsTaskConfigs(ctx context.Context, pools []*entity.Pool) ([]*asynq.PeriodicTaskConfig, error) {
 	var configs []*asynq.PeriodicTaskConfig
 	for _, p := range pools {
 		payload := valueobject.TaskScanTxsPayload{
@@ -158,7 +208,12 @@ func (s *TaskService) ScanTxs(ctx context.Context, task valueobject.TaskScanTxsP
 		return err
 	}
 
-	logs, fromBlock, toBlock, err := s.getLogs(ctx, cursor.BlockNumber, poolAddress)
+	fromBlock, toBlock, err := s.initScannerBlockRange(ctx, cursor)
+	if err != nil {
+		return err
+	}
+
+	logs, err := s.getLogs(ctx, fromBlock, toBlock, poolAddress)
 	if err != nil {
 		return err
 	}
@@ -201,6 +256,9 @@ func (s *TaskService) ScanTxs(ctx context.Context, task valueobject.TaskScanTxsP
 
 func (s *TaskService) GetETHUSDTKline(ctx context.Context, payload valueobject.TaskGetETHUSDTKlinePayload) error {
 	starTimeNsec := int64(payload.Time) * 1000
+
+	// TODO: check DB first to reduce call to binance!
+
 	klines, err := s.binanceClient.GetKlines(ctx, starTimeNsec, 0, 1, "ETHUSDT", "1m")
 	if err != nil {
 		return err
@@ -235,36 +293,179 @@ func (s *TaskService) GetETHUSDTKline(ctx context.Context, payload valueobject.T
 	return s.priceRepo.CreateKline(ctx, &e)
 }
 
-func (s *TaskService) getLogs(ctx context.Context, cursorBlockNbr uint64, poolAddress string) ([]types.Log, uint64, uint64, error) {
+func (s *TaskService) FinalizeTxs(ctx context.Context, payload valueobject.TaskFinalizeTxsPayload) error {
+	var (
+		poolID         = payload.PoolID
+		poolAddress    = payload.PoolAddress
+		token0Decimals = payload.Token0Decimals
+		token1Decimals = payload.Token1Decimals
+	)
+
+	finalizerCursor, err := s.txRepo.GetCursorByPoolIDAndType(ctx, poolID, valueobject.BlockCursorTypeFinalizer)
+	if err != nil {
+		return err
+	}
+	scannerCursor, err := s.txRepo.GetCursorByPoolIDAndType(ctx, poolID, valueobject.BlockCursorTypeScanner)
+	if err != nil {
+		return err
+	}
+
+	fromBlock, toBlock, finalizerCreatedAtFinalizedBlockNbr, err := s.initFinalizerBlockRange(ctx, finalizerCursor, scannerCursor)
+	if err != nil {
+		return err
+	}
+	if toBlock <= finalizerCreatedAtFinalizedBlockNbr {
+		return s.txRepo.UpdateDataFinalizer(ctx, poolID, finalizerCursor.ID, fromBlock, toBlock, nil, nil)
+	}
+
+	logs, err := s.getLogs(ctx, fromBlock, toBlock, poolAddress)
+	if err != nil {
+		return err
+	}
+
+	txHashes := uniqueTxHashes(logs)
+
+	existingTxs, err := s.txRepo.GetTxsByPoolIDAndBlockRange(ctx, poolID, fromBlock, toBlock)
+	if err != nil {
+		return err
+	}
+
+	reorg := compareFinalizedTxsWithExistingTxs(txHashes, existingTxs)
+	if !reorg {
+		return s.txRepo.UpdateDataFinalizer(
+			ctx, poolID, finalizerCursor.ID, fromBlock, toBlock, nil, nil,
+		)
+	}
+
+	logger.WithFields(ctx, logger.Fields{
+		"poolId":    poolID,
+		"fromBlock": fromBlock,
+		"toBlock":   toBlock,
+	}).Warn("reorg")
+
+	blockHashes := uniqueBlockHashes(logs)
+	headers, err := s.getBlockHeaders(ctx, blockHashes)
+	if err != nil {
+		return err
+	}
+
+	if err := s.enqueueTaskGetETHUSDTKlines(ctx, headers); err != nil {
+		return err
+	}
+
+	receipts, err := s.getTxs(ctx, txHashes)
+	if err != nil {
+		return err
+	}
+
+	txs, err := initTxs(ctx, poolID, headers, receipts)
+	if err != nil {
+		return err
+	}
+	for _, tx := range txs {
+		tx.IsFinalized = true
+	}
+
+	swapEvents, err := initSwapEvents(ctx, poolID, token0Decimals, token1Decimals, logs)
+	if err != nil {
+		return err
+	}
+
+	return s.txRepo.UpdateDataFinalizer(ctx, poolID, finalizerCursor.ID, fromBlock, toBlock, txs, swapEvents)
+}
+
+func (s *TaskService) initScannerBlockRange(ctx context.Context, scannerCursor *entity.BlockCursor) (uint64, uint64, error) {
 	latestBlockHeader, err := s.ethClient.GetLatestBlockHeader(ctx)
 	if err != nil {
-		return nil, 0, 0, err
+		return 0, 0, err
 	}
 	latestBlockNbr := latestBlockHeader.Number.Uint64()
 
-	fromBlock := cursorBlockNbr
+	fromBlock := scannerCursor.BlockNumber
 	toBlock := fromBlock + s.config.BlockBatchSize - 1
 	if toBlock > latestBlockNbr {
 		toBlock = latestBlockNbr
 	}
 
-	if fromBlock > toBlock {
+	if fromBlock > toBlock { // node got issues
 		logger.WithFields(ctx, logger.Fields{
-			"poolAddress":    poolAddress,
+			"poolId":         scannerCursor.PoolID,
 			"fromBlock":      fromBlock,
 			"toBlock":        toBlock,
 			"batchSize":      s.config.BlockBatchSize,
 			"latestBlockNbr": latestBlockNbr,
-		}).Warn("invalid block range")
-		return nil, 0, 0, ErrInvalidBlockRange
+		}).Error("invalid block range")
+		return 0, 0, ErrInvalidBlockRange
 	}
 
-	logs, err := s.ethClient.GetLogs(ctx, fromBlock, toBlock, []common.Address{common.HexToAddress(poolAddress)})
+	return fromBlock, toBlock, nil
+}
+
+func (s *TaskService) initFinalizerBlockRange(ctx context.Context, finalizerCursor, scannerCursor *entity.BlockCursor) (uint64, uint64, uint64, error) {
+
+	fromBlock := finalizerCursor.BlockNumber
+	toBlock := fromBlock + s.config.BlockBatchSize - 1
+
+	latestFinalizedBlockNbr, err := s.GetLatestFinalizedBlockNumber(ctx)
 	if err != nil {
-		return nil, 0, 0, err
+		return 0, 0, 0, err
+	}
+	if toBlock > latestFinalizedBlockNbr {
+		toBlock = latestFinalizedBlockNbr
 	}
 
-	return logs, fromBlock, toBlock, nil
+	if toBlock > scannerCursor.BlockNumber-1 {
+		toBlock = scannerCursor.BlockNumber - 1
+	}
+
+	if fromBlock > toBlock { // node got issues
+		logger.WithFields(ctx, logger.Fields{
+			"fromBlock": fromBlock,
+			"toBlock":   toBlock,
+		}).Error(ErrInvalidBlockRange.Error())
+		return 0, 0, 0, ErrInvalidBlockRange
+	}
+
+	var extra valueobject.BlockCursorFinalizerExtra
+	extraBytes, err := finalizerCursor.Extra.MarshalJSON()
+	if err != nil {
+		logger.Error(ctx, err.Error())
+		return 0, 0, 0, err
+	}
+	if err := json.Unmarshal(extraBytes, &extra); err != nil {
+		logger.Error(ctx, err.Error())
+		return 0, 0, 0, err
+	}
+
+	if fromBlock <= extra.CreatedAtFinalizedBlock && extra.CreatedAtFinalizedBlock <= toBlock {
+		toBlock = extra.CreatedAtFinalizedBlock
+	}
+
+	return fromBlock, toBlock, extra.CreatedAtFinalizedBlock, nil
+}
+
+// compareFinalizedTxsWithExistingTxs checks whether reorg occured.
+func compareFinalizedTxsWithExistingTxs(finalizedTxHashes []common.Hash, existingTxs []*entity.Tx) bool {
+	if len(finalizedTxHashes) != len(existingTxs) {
+		return true
+	}
+
+	m := make(map[string]struct{})
+	for _, h := range finalizedTxHashes {
+		m[strings.ToLower(h.Hex())] = struct{}{}
+	}
+
+	for _, tx := range existingTxs {
+		if _, ok := m[tx.TxHash]; !ok {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (s *TaskService) getLogs(ctx context.Context, fromBlock, toBlock uint64, poolAddress string) ([]types.Log, error) {
+	return s.ethClient.GetLogs(ctx, fromBlock, toBlock, []common.Address{common.HexToAddress(poolAddress)})
 }
 
 func (s *TaskService) getTxs(ctx context.Context, txHashes []common.Hash) ([]*types.Receipt, error) {
@@ -339,7 +540,7 @@ func (s *TaskService) enqueueTaskGetETHUSDTKlines(ctx context.Context, blockHead
 	exists := map[uint64]struct{}{}
 	for _, b := range blockHeaders {
 		// round down to the timestamp starting this minute
-		t := uint64(time.Unix(int64(b.Time), 0).Truncate(time.Minute).Unix())
+		t := uint64(timepkg.RoundDown(int64(b.Time), time.Minute))
 
 		if _, ok := exists[t]; ok {
 			continue
