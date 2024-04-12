@@ -109,6 +109,11 @@ func (suite *TestSuite) SetupTest() {
 		suite.FailNow(err.Error())
 	}
 
+	err = db.Exec("TRUNCATE TABLE ethusdt_klines CASCADE").Error
+	if err != nil {
+		suite.FailNow(err.Error())
+	}
+
 	// redis
 }
 

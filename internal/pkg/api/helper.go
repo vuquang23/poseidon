@@ -15,8 +15,9 @@ import (
 
 var ErrorResponseByError = map[error]ErrorResponse{
 	txrepo.ErrTxNotFound: {
-		Code:    4000,
-		Message: "tx hash not found",
+		Code:       4041,
+		Message:    "tx hash not found",
+		HTTPStatus: http.StatusNotFound,
 	},
 }
 
