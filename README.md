@@ -22,7 +22,7 @@ cd poseidon
 
 ### Start infra
 ```shell
-docker-compose -f ./infra/docker-compose-infra.yaml -p poseidon-infra up -d
+docker-compose -f ./infra/docker-compose-infra.yaml -p poseidon up -d
 ```
 
 ### Run from source
@@ -62,13 +62,13 @@ docker build . -t poseidon
 Mac/Window
 
 ```shell
-docker-compose -p poseidon-app up -d
+docker-compose -p poseidon up -d
 ```
 
 Linux
 
 ```shell
-docker-compose -f docker-compose-linux.yaml -p poseidon-app up -d
+docker-compose -f docker-compose-linux.yaml -p poseidon up -d
 ```
 
 ### Testing
