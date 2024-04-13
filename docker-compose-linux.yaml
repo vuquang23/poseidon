@@ -8,6 +8,9 @@ services:
   api:
     container_name: poseidon-api
     image: "poseidon:latest"
+    depends_on:
+      - postgresql
+      - redis
     command: ["./app", "api"]
     environment:
       - POSTGRES_HOST=postgresql
@@ -20,6 +23,10 @@ services:
   master:
     container_name: poseidon-master
     image: "poseidon:latest"
+    depends_on:
+      - api
+      - postgresql
+      - redis
     command: ["./app", "master"]
     environment:
       - POSTGRES_HOST=postgresql
@@ -30,6 +37,10 @@ services:
   worker:
     container_name: poseidon-worker
     image: "poseidon:latest"
+    depends_on:
+      - api
+      - postgresql
+      - redis
     command: ["./app", "worker"]
     environment:
       - POSTGRES_HOST=postgresql
