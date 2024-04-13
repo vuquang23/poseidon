@@ -8,13 +8,10 @@ services:
   api:
     container_name: poseidon-api
     image: "poseidon:latest"
-    depends_on:
-      - postgresql
-      - redis
     command: ["./app", "api"]
     environment:
-      - POSTGRES_HOST=postgresql
-      - REDIS_ADDRESSES=redis:6379
+      - POSTGRES_HOST=poseidon-postgresql
+      - REDIS_ADDRESSES=poseidon-redis:6379
     ports:
       - "8080:8080"
     networks:
@@ -25,12 +22,10 @@ services:
     image: "poseidon:latest"
     depends_on:
       - api
-      - postgresql
-      - redis
     command: ["./app", "master"]
     environment:
-      - POSTGRES_HOST=postgresql
-      - REDIS_ADDRESSES=redis:6379
+      - POSTGRES_HOST=poseidon-postgresql
+      - REDIS_ADDRESSES=poseidon-redis:6379
     networks:
       - app-tier
 
@@ -39,11 +34,9 @@ services:
     image: "poseidon:latest"
     depends_on:
       - api
-      - postgresql
-      - redis
     command: ["./app", "worker"]
     environment:
-      - POSTGRES_HOST=postgresql
-      - REDIS_ADDRESSES=redis:6379
+      - POSTGRES_HOST=poseidon-postgresql
+      - REDIS_ADDRESSES=poseidon-redis:6379
     networks:
       - app-tier
