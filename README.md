@@ -2,8 +2,7 @@
 Poseidon is an open-source project designed to track predefined Uniswap V3 pools in a straightforward, scalable manner, with reorg handled.
 
 ## Demo
-
-![Demo GIF]()
+[Poseidon demo](https://youtu.be/mYdsMhK54Rk)
 
 ## Tech Stack
 - [Go](https://go.dev/) - Language
