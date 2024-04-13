@@ -294,8 +294,6 @@ paths:
                   requestId:
                     type: string
       operationId: get-txs-swap-events
-      x-stoplight:
-        id: hqmgxpruc25ve
       parameters:
         - schema:
             type: string
