@@ -15,7 +15,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -a -installsuffix cgo -o app -
 # Minimal image
 FROM alpine:latest
 WORKDIR /app
-COPY migrations migrations
+COPY migration migration
+COPY internal/pkg/config internal/pkg/config
 COPY --from=build /build/app app
 RUN apk update
 RUN apk upgrade
