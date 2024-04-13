@@ -20,6 +20,8 @@ services:
   master:
     container_name: poseidon-master
     image: "poseidon:latest"
+    depends_on:
+      - api
     command: ["./app", "master"]
     environment:
       - POSTGRES_HOST=host.docker.internal
@@ -30,6 +32,8 @@ services:
   worker:
     container_name: poseidon-worker
     image: "poseidon:latest"
+    depends_on:
+      - api
     command: ["./app", "worker"]
     environment:
       - POSTGRES_HOST=host.docker.internal
