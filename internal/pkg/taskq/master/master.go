@@ -26,7 +26,7 @@ func New(cfg redis.Config, svc task.ITaskService) (*Master, error) {
 	manager, err := asynq.NewPeriodicTaskManager(asynq.PeriodicTaskManagerOpts{
 		RedisConnOpt:               redisConnOpt,
 		PeriodicTaskConfigProvider: provider,
-		SyncInterval:               15 * time.Second,
+		SyncInterval:               5 * time.Second,
 	})
 	if err != nil {
 		return nil, err
@@ -47,5 +47,6 @@ type periodicTaskCfgProvider struct {
 }
 
 func (p *periodicTaskCfgProvider) GetConfigs() ([]*asynq.PeriodicTaskConfig, error) {
-	return p.svc.GetPeriodicTaskConfigs(context.Background())
+	configs, _ := p.svc.GetPeriodicTaskConfigs(context.Background())
+	return configs, nil
 }
