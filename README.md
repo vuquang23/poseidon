@@ -92,4 +92,4 @@ go tool cover -html profile.cov
 ```
 
 ## Documentation
-Please check out [Usage](docs/usage.md) and [Architecture](docs/architecture.md) for more details on the system.
+Please check out [Usage](docs/usage.md) and [System Design](docs/system_design.md) for more details on the system.
