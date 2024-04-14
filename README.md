@@ -92,4 +92,4 @@ go tool cover -html profile.cov
 ```
 
 ## Documentation
-Please checkout [Architecture](docs/architecture.md) for more details on system architecture, and [API Docs](docs/api.yaml) for API documentation.
+Please check out [Usage](docs/usage.md) and [System Design](docs/system_design.md) for more details on the system.

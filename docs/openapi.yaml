@@ -1,0 +1,362 @@
+openapi: 3.1.0
+info:
+  title: Poseidon
+  version: "1.0"
+  summary: Poseidon API documentation
+  contact:
+    name: Quang Le
+    email: levuquang2k1@gmail.com
+servers:
+  - url: "http://localhost:8080/api/v1"
+paths:
+  /pools:
+    post:
+      summary: Create pool
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      poolId:
+                        type: integer
+                  requestId:
+                    type: string
+              examples:
+                Example 1:
+                  value:
+                    code: 0
+                    message: successfully
+                    data:
+                      poolId: 1
+                    requestId: e86c38e6-4cf9-4798-ab17-bf809f1f25a6
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  details:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        fieldViolations:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              field:
+                                type: string
+                              description:
+                                type: string
+                  requestId:
+                    type: string
+              examples:
+                Example 1:
+                  value:
+                    code: 4000
+                    message: bad request
+                    details:
+                      - fieldViolations:
+                          - field: address
+                            description: invalid
+                    requestId: d1583bb0-e780-4dad-acc5-8df9707f77a7
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  details:
+                    type: "null"
+                  requestId:
+                    type: string
+              examples:
+                Example 1:
+                  value:
+                    code: 500
+                    message: internal server error
+                    details: null
+                    requestId: 46cdb355-130e-49f4-9e60-bf2dc15978c5
+      operationId: post-pools
+      parameters:
+        - schema:
+            type: string
+          in: header
+          name: x-api-key
+          description: Admin API Key
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                address:
+                  type: string
+                token0:
+                  type: string
+                token1:
+                  type: string
+                token0Decimals:
+                  type: integer
+                token1Decimals:
+                  type: integer
+                startBlock:
+                  type: integer
+            examples:
+              Example 1:
+                value:
+                  address: "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
+                  token0: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+                  token1: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+                  token0Decimals: 6
+                  token1Decimals: 18
+                  startBlock: 19646257
+  /txs:
+    get:
+      summary: Get txs
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      txs:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            poolId:
+                              type: integer
+                            txHash:
+                              type: string
+                            blockNumber:
+                              type: integer
+                            blockTime:
+                              type: integer
+                            gas:
+                              type: integer
+                            gasPrice:
+                              type: string
+                            isFinalized:
+                              type: boolean
+                            createdAt:
+                              type: integer
+                            swapEvents:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  id:
+                                    type: integer
+                                  amount0:
+                                    type: string
+                                  amount1:
+                                    type: string
+                                  price:
+                                    type: string
+                                  createdAt:
+                                    type: integer
+                      pagination:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                  requestId:
+                    type: string
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  details:
+                    type: "null"
+                  requestId:
+                    type: string
+      operationId: get-txs
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: poolAddress
+        - schema:
+            type: string
+          in: query
+          name: page
+        - schema:
+            type: string
+          in: query
+          name: pageSize
+  /txs/swap-events:
+    get:
+      summary: Get swap events
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      events:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            amount0:
+                              type: string
+                            amount1:
+                              type: string
+                            price:
+                              type: string
+                            createdAt:
+                              type: integer
+                            poolAddress:
+                              type: string
+                  requestId:
+                    type: string
+              examples:
+                Example 1:
+                  value:
+                    code: 0
+                    message: successfully
+                    data:
+                      events:
+                        - id: 98
+                          amount0: "-37497321190"
+                          amount1: "11421044354152960276"
+                          price: "3283.177968"
+                          createdAt: 1713008460
+                          poolAddress: "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640"
+                    requestId: 0aadad25-338f-4c8a-936c-40b751add9a1
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  details:
+                    type: "null"
+                  requestId:
+                    type: string
+      operationId: get-txs-swap-events
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: txHash
+  /txs/fee-usdt:
+    get:
+      summary: Get tx fee USDT
+      tags: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      feeUsdt:
+                        type: string
+                  requestId:
+                    type: string
+              examples:
+                Example 1:
+                  value:
+                    code: 0
+                    message: successfully
+                    data:
+                      feeUsdt: "6.069127"
+                    requestId: d2be8a71-0d5f-49da-9390-09bce8423d0b
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  details:
+                    type: "null"
+                  requestId:
+                    type: string
+              examples:
+                Example 1:
+                  value:
+                    code: 500
+                    message: internal server error
+                    details: null
+                    requestId: 6cb2c2fa-bd2a-4581-ba5b-c79c8af128d9
+      operationId: get-txs-fee-usdt
+      parameters:
+        - schema:
+            type: string
+          in: query
+          name: txHash
+components:
+  schemas: {}
